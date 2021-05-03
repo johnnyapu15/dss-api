@@ -1,6 +1,8 @@
 import {Router, json } from 'express';
 import logger from '../middleware/logger/index';
 import memstore from '../middleware/memstore/index';
+import room_router from './room/index';
+
 const router = Router();
 
 router.use(logger);
@@ -9,9 +11,8 @@ router.get('/uuid',
     memstore.getUUID
 );
 
-router.use(json({limit:'10mb', type: ()=> true}))
+router.use('/room', room_router);
 
-router.get('/data/:id', )
 
 
 export default router;
