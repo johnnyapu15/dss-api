@@ -6,7 +6,7 @@ const auth_router = Router();
 
 
 auth_router.get('/uuid', 
-    auth.getUUID
+    auth.generateIDMW
 );
 
 

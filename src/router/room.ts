@@ -1,4 +1,5 @@
 import {Router, json } from 'express';
+import { popMW } from '../middleware/memstore/cache';
 
 
 const room_router = Router();
@@ -6,7 +7,9 @@ const room_router = Router();
 
 room_router.use(json({limit:'10mb', type: ()=> true}))
 
-room_router.get('/:room/:id', )
+room_router.get('/:room/:id', 
+    popMW
+    )
 
 
 
