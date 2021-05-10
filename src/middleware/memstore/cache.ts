@@ -1,92 +1,67 @@
 import { BadRequestError, NotFoundError } from "../error";
-import { Request, Response, NextFunction } from 'express';
-
 
 /**
- * marker id: string  => users: Set<string>
- * 
- * ${user1}_${user2}: string => SDN for webRTC: string[]
- * 
+ * TODO
+ * 확장 가능하려면 외부 DB를 이용해야 함. 
+ * 외부 DB를 이용한다고 하면 서버 인스턴스에서 관리하는 소켓들이
+ * 해당 DB를 이벤트 리스너로 연결돼야 함.
  */
-type MarkerData = Set<string>;
-type SignalData = string[];
+const _globalCache: { [key: string]: Set<string> | string[] } = {};
 
 
-const _globalCache: { [key: string]: MarkerData | SignalData } = {};
-
-
-export async function attachIntoMarker(id: string, marker_id: string) {
+export async function addIntoSet(id: string, setId: string) {
     try {
         let isInit = false;
-        if (!_globalCache[id]) {
-            _globalCache[id] = new Set<string>();
+        const got = _globalCache[setId]
+        if (!got) {
+            _globalCache[setId] = new Set<string>();
             isInit = true;
         }
         if (!id) {
             throw new BadRequestError('Invalid id');
         }
-        const cache = _globalCache[id] as MarkerData;
-        cache.add(id);
-        if (!isInit)
-            return cache;
+        (_globalCache[setId] as Set<string>).add(id);
+        const set = _globalCache[setId] as Set<string>
+        
+        return {isInit, set:[...set]};
     } catch (e) {
         throw (e);
     }
 }
 
-export async function detachFromMarker(id: string, marker_id: string) {
+export async function deleteFromSet(id: string, setId: string) {
     try {
-        const got = _globalCache[id] as MarkerData;
-        if (!got || !got.has(id)) {
+        const got = _globalCache[setId]
+        if (!got || !(got instanceof Set) || !got.has(id)) {
             throw new NotFoundError('Invalid id');
         } else {
-            got.delete(id);
+            (_globalCache[setId] as Set<string>).delete(id);
+            const set = _globalCache[setId] as Set<string>
+            if ((_globalCache[setId] as Set<string>).size === 0) {
+                deleteKey(setId)
+            }
+            return {set:[...set]};
         }
     } catch (e) {
         throw e;
     }
 }
 
-
-
-export async function pushMW(req: Request, res: Response, next: NextFunction) {
-    try {
-        const id = req.params.id;
-        const data = req.body as string;
-
-        pushSignal(id, data);
-
-        res.statusCode = 200;
-        res.end();
-    } catch (e) {
-        next(e);
-    }
+export async function deleteKey(id: string) {
+    delete(_globalCache[id])
 }
 
-export async function popMW(req: Request, res: Response, next: NextFunction) {
-    try {
-        const id = req.params.id;
-        console.log(id)
-        const got = await popSignal(id);
-        res.statusCode = 200
-        res.end(got);
-
-    } catch (e) {
-        next(e);
-    }
-}
-
-
-
-export async function pushSignal(id: string, data?: string) {
+export async function pushIntoArray(id: string, data?: string) {
     try {
         if (!_globalCache[id]) {
             _globalCache[id] = [];
         }
         if (data) {
-            const cache = _globalCache[id] as SignalData;
+            const cache = _globalCache[id] as string[];
             cache.push(data);
+            console.log(cache)
         }
+        
         return 0;
     } catch (e) {
         throw (e);
@@ -94,9 +69,9 @@ export async function pushSignal(id: string, data?: string) {
 }
 
 
-export async function popSignal(id: string) {
+export async function popFromArray(id: string) {
     try {
-        const got = _globalCache[id] as SignalData;
+        const got = _globalCache[id] as string[];
         if (!got || got.length === 0) {
             throw new NotFoundError('Invalid id');
         } else {
