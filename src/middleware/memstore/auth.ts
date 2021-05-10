@@ -104,7 +104,6 @@ export async function pushMW(req: Request, res: Response, next: NextFunction) {
 export async function popMW(req: Request, res: Response, next: NextFunction) {
     try {
         const id = req.params.memberAddr;
-        console.log(id)
         const got = await popSignal(id);
         res.statusCode = 200
         res.end(got);

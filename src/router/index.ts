@@ -7,7 +7,7 @@ const router = Router();
 
 router
     .use(logger)
-    .use('/', markerRouter)
+    .use('/marker', markerRouter)
     .use(errorMiddleware)
 
 export default router;

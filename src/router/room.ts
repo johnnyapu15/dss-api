@@ -1,16 +1,16 @@
 import { Router, json } from 'express';
-import { popMW, popSignal, pushMW, pushSignal } from '../middleware/memstore/auth';
+import { popMW, pushMW } from '../middleware/memstore/auth';
 
 
-const room_router = Router();
+const markerRouter = Router();
 
 
-room_router.use(json({ limit: '10mb', type: () => true }))
+markerRouter.use(json({ limit: '10mb', type: () => true }))
 
-room_router
+markerRouter
     .get('/:memberAddr', popMW)
     .post('/:memberAddr', pushMW)
 
 
 
-export default room_router;
+export default markerRouter;
