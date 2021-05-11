@@ -1,26 +1,19 @@
-export type WSMsg = {
-    type: WSMsgType
+export * as socket from './init'
+
+export type SocketMessage = {
+    event: SocketEvent
     markerId: string
     members?: string[]
     data?: string
     id?: string
+    sender?: string
+    receiver?: string
 }
 
-export enum WSMsgType {
+export enum SocketEvent {
     INIT = 'init',
     ATTACH = 'attach',
     DETACH = 'detach',
-    SIGNAL = 'signal',
+    SIGNAL_PUSH = 'signal_push',
+    SIGNAL_POP = 'signal_pop',
 }
-
-export enum SocketIOMsgEvent {
-    ATTACH = 'attach',
-    DETACH = 'detach',
-}
-
-export type Marker = {
-    id: string
-    name: string
-}
-
-export type SocketIOMsg = Marker

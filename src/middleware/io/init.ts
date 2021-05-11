@@ -1,107 +1,115 @@
 import { Express } from 'express';
 import { allocID, attachIntoMarker, deleteSignalHolder, detachFromMarker, pushSignal } from '../memstore/auth';
-import { Marker, WSMsg, WSMsgType } from '.';
+import { SocketMessage, SocketEvent } from '.';
 import WebSocket from 'ws'
 import expressWs from 'express-ws';
-import { getMemberAddr } from '../memstore/commonFunctions';
 
-type LocalSocket = {
-    socket: WebSocket
-    id: string
-    roomId: string
-}
-const localSockets: {
-    [key: string]:
-    Map<string, LocalSocket>
-} = {}
+import socketIO from 'socket.io'
+import httpServer from 'http'
 
-export function initWS(app: Express) {
-    const wsApp = expressWs(app).app
+import { generateUUID, getMemberAddr } from '../memstore/commonFunctions';
+import { PUBSUBMessage, redis } from '../memstore';
 
-    wsApp
-        .ws('/:roomId', async (socket, req, next) => {
-            try {
-                const roomId = req.params.roomId as string
-                const id = await allocID()
+// Generate UUID of the socket server instance
+const instanceUUID = generateUUID().slice(0, 10)
+let io: socketIO.Server
+const localSockets: { [socketId: string]: socketIO.Socket } = {}
 
-                socket
-                    .on('message', async (msg) => {
-                        try {
-                            await signalHandler(msg)
-                        } catch (e) {
-                            sendError(id, socket, e)
-                        }
-                    })
-                    .on('close', async (code) => {
-                        try {
-                            if (code === 1005) {
-                                await closeConnection(id, roomId)
-                            }
-                        } catch (e) {
-                            sendError(id, socket, e)
-                        }
-                    })
+export function initWS(server: httpServer.Server) {
 
-                initConnection(socket, id, roomId)
+    io = new socketIO.Server(server, { transports: ['websocket'] })
 
-            } catch (e) {
-                next(e)
-            }
-        })
+    io.on('connection', async (socket) => {
+        const markerId = socket.handshake.query['markerId'] as string
+        if (!markerId) {
+            // ERROR
+            console.log('No markerId')
+        }
 
-}
+        const id = await allocID(`${instanceUUID}_${socket.id}`)
 
-async function initConnection(socket: WebSocket, id: string, roomId: string) {
-
-    if (!localSockets[roomId]) {
-        localSockets[roomId] = new Map()
-    }
-    localSockets[roomId].set(id, {
-        id,
-        roomId,
         socket
-    } as LocalSocket)
+            .on(SocketEvent.DETACH, detach.bind(socket, ...arguments))
+            .on(SocketEvent.SIGNAL_PUSH, () => { })
+            .on(SocketEvent.SIGNAL_POP, () => { })
 
-    socket.send(JSON.stringify({
-        type: WSMsgType.INIT,
-        markerId: roomId,
-        id: id
-    } as WSMsg))
+            .emit(SocketEvent.INIT, JSON.stringify({
+                event: SocketEvent.INIT,
+                markerId,
+                id: id
+            } as SocketMessage))
 
-    // Create room | join
-    const roomData = await attachIntoMarker(id, roomId);
-    const data = JSON.stringify(roomData)
+        await attach(socket, markerId, id)
 
-    if (roomData.members) {
-        broadcast(
-            roomData.members,
-            id,
-            roomId,
-            data
-        )
-    }
-
-    console.log(`init ${id} on ${roomId}`)
+        console.log(`init ${id} on ${markerId}`)
+    })
+    console.log(`socket init for ${io.path()}`)
 }
 
-async function closeConnection(id: string, roomId: string) {
-    await deleteSignalHolder(id)
-    const roomData = await detachFromMarker(id, roomId)
-    const data = JSON.stringify(roomData)
-    if (roomData.members) {
-        broadcast(
-            roomData.members,
-            id,
-            roomId,
-            data
-        )
+async function attach(socket: socketIO.Socket, markerId: string, id: string,) {
+    try {
+        // join
+        // local socket join
+        socket.join(markerId)
+        localSockets[id] = socket
+        // subscribe to the marker
+        const message = await redis.init(`marker_${markerId}`, id)
+
+        redis.broadcast({
+            message
+        } as PUBSUBMessage)
+    } catch (e) {
+        sendError(socket, e)
     }
-    console.log(`closed ${id} on ${roomId}`)
 }
+
+async function detach(this: socketIO.Socket, msg: SocketMessage) {
+    try {
+        const { id, markerId } = msg
+        if (!id || !markerId) {
+            throw new Error('Invalid parameter')
+        }
+        const message = await redis.close(id, markerId)
+
+        redis.broadcast({
+            message
+        } as PUBSUBMessage)
+        console.log(`closed ${id} on ${markerId}`)
+    } catch (e) {
+        sendError(this, e)
+    }
+}
+
+
+
+export function broadcast(msg: SocketMessage) {
+    // 이 서버에 연결된 소켓에 해당하는 멤버에게 브로드캐스트
+    io
+        .to(msg.markerId)
+        .emit(msg.event, msg)
+}
+
+export function unicast(msg: SocketMessage) {
+    // 이 서버에 연결된 소켓 멤버에 유니캐스트
+    const { receiver } = msg
+    if (receiver && localSockets[receiver]) {
+        localSockets[receiver].emit(msg.event, msg)
+    }
+}
+
+
+function sendError(socket: socketIO.Socket, e: Error) {
+    console.error(`Error for ${e.message}`)
+    console.info(e)
+    socket.emit('error', e.message)
+}
+
+
+////////////////////////////
 
 async function signalHandler(msg: WebSocket.Data) {
     try {
-        const parsed = JSON.parse(msg as string) as WSMsg
+        const parsed = JSON.parse(msg as string) as SocketMessage
         if (parsed.id) {
             const sendTo = getMemberAddr(parsed.id, parsed.markerId)
             await pushSignal(sendTo, parsed.data)
@@ -112,21 +120,3 @@ async function signalHandler(msg: WebSocket.Data) {
     }
 }
 
-export async function broadcast(members: string[], id: string, roomId: string, data?: string) {
-    // 이 서버에 연결된 소켓에 해당하는 멤버에게 브로드캐스트
-    const localMembers = localSockets[roomId]
-    members.forEach(memberId => {
-        // chk local members
-        if (localMembers.has(memberId)) {
-            localMembers.get(memberId)?.socket
-                .send(data)
-        }
-    })
-}
-
-
-function sendError(id: string, socket: WebSocket, e: Error) {
-    console.error(`Error for ${e.name}, socket: ${id}`)
-    console.info(e)
-    socket.send(e.name)
-}

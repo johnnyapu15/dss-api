@@ -1,7 +1,7 @@
 import { generateUUID } from './commonFunctions';
 import { Request, Response, NextFunction } from 'express';
 import { addIntoSet, deleteFromSet, deleteKey, popFromArray, pushIntoArray } from './cache';
-import { WSMsg, WSMsgType } from '../io';
+import { SocketMessage, SocketEvent } from '../io';
 
 /**
  * marker id: string  => users: Set<string>
@@ -23,8 +23,9 @@ export async function generateIDMW(req: Request, res: Response, next: NextFuncti
 }
 
 
-export async function allocID() {
-    const id = generateUUID();
+export async function allocID(id? :string) {
+    if (!id)
+        id = generateUUID();
 
     // create empty signal placeholder (array)
     await pushSignal(id);
@@ -33,14 +34,15 @@ export async function allocID() {
 
 
 export async function attachIntoMarker(id: string, markerId: string) {
+    /** publish event to redis */
     try {
         const setData = await addIntoSet(id, markerId)
         const roomData = {
-            type: WSMsgType.ATTACH,
+            event: SocketEvent.ATTACH,
             members: setData.set,
             markerId,
             id,           
-        } as WSMsg
+        } as SocketMessage
         return roomData
     } catch (e) {
         throw (e);
@@ -49,13 +51,14 @@ export async function attachIntoMarker(id: string, markerId: string) {
 
 export async function detachFromMarker(id: string, markerId: string) {
     try {
+        await deleteSignalHolder(id)
         const setData = await deleteFromSet(id, markerId)
         const roomData = {
-            type: WSMsgType.DETACH,
+            event: SocketEvent.DETACH,
             members: setData.set,
             markerId,
             id,   
-        } as WSMsg
+        } as SocketMessage
         return roomData
     } catch (e) {
         throw e;
