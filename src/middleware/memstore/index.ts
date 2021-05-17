@@ -1,9 +1,10 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable no-shadow */
 import { SocketMessage } from '../io';
 
-export * as redis from './redis'
+export * as redis from './redis';
 export * as cache from './cache';
 export * as auth from './auth';
-
 
 export enum PUBSUBMessageType {
     BROADCAST = '',

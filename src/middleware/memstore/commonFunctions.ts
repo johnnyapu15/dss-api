@@ -1,10 +1,10 @@
-import {v4} from 'uuid';
+import { v4 } from 'uuid';
 
 export function generateUUID() {
-    const rand = v4();
-    return rand;
+  const rand = v4();
+  return rand;
 }
 
 export function getMemberAddr(id:string, roomId:string) {
-    return `${roomId}_${id}`
+  return `${roomId}_${id}`;
 }

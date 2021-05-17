@@ -1,14 +1,9 @@
-import {Router, json } from 'express';
+import { Router } from 'express';
 import { auth } from '../middleware/memstore';
 
+const authRouter = Router();
 
-const auth_router = Router();
+authRouter.get('/uuid',
+  auth.generateIDMW);
 
-
-auth_router.get('/uuid', 
-    auth.generateIDMW
-);
-
-
-
-export default auth_router;
+export default authRouter;

@@ -1,66 +1,59 @@
-import { PUBSUBMessage, PUBSUBMessageType } from ".";
-import redis from 'redis'
-import { socket } from "../io";
-import { attachIntoMarker, deleteSignalHolder, detachFromMarker } from "./auth";
+import { PUBSUBMessage, PUBSUBMessageType } from '.';
+import { socket } from '../io';
+import { attachIntoMarker, detachFromMarker } from './auth';
 
-async function pub(msg: PUBSUBMessage) {
-
+export async function msghandler(msg: PUBSUBMessage) {
+  /** use sub,  */
+  switch (msg.type) {
+    case PUBSUBMessageType.BROADCAST:
+      socket.broadcast(msg.message);
+      break;
+    case PUBSUBMessageType.UNICAST:
+      socket.unicast(msg.message);
+      break;
+    default:
+      break;
+  }
 }
 
 export async function broadcast(msg: PUBSUBMessage) {
-    if (!msg.type) {
-        msg.type = PUBSUBMessageType.BROADCAST
-    }
-    /** MOCK */
-    
-    msghandler(msg)
+  if (!msg.type) {
+    // eslint-disable-next-line no-param-reassign
+    msg.type = PUBSUBMessageType.BROADCAST;
+  }
+  /** MOCK */
+
+  msghandler(msg);
 }
 
 export async function unicast(msg: PUBSUBMessage) {
-    if (!msg.type) {
-        msg.type = PUBSUBMessageType.UNICAST
-    }
-    /** MOCK */
-    msghandler(msg)
+  if (!msg.type) {
+    // eslint-disable-next-line no-param-reassign
+    msg.type = PUBSUBMessageType.UNICAST;
+  }
+  /** MOCK */
+  msghandler(msg);
 }
-
-
-export async function msghandler(msg: PUBSUBMessage) {
-    /** use sub,  */
-    switch (msg.type) {
-        case PUBSUBMessageType.BROADCAST:
-            socket.broadcast(msg.message)
-            break;
-        case PUBSUBMessageType.UNICAST:
-            socket.unicast(msg.message)
-            break
-        default:
-            break
-
-    }
-
-}
-
 
 export async function init(markerId: string, id: string) {
-    /** use sub */
-    
-    /** MOCK using local memory */
-    return await attachIntoMarker(id, markerId)
+  /** use sub */
 
-    // marker
+  /** MOCK using local memory */
+  return attachIntoMarker(id, markerId);
 
-    // signal
-    console.log('redis init')
+  // marker
+
+  // signal
+  console.log('redis init');
 }
 
 export async function close(markerId: string, id: string) {
-    /** use sub */
+  /** use sub */
 
-    /** MOCK using local memory */
-    return await detachFromMarker(id, markerId)
+  /** MOCK using local memory */
+  return detachFromMarker(id, markerId);
 
-    // marker
+  // marker
 
-    // signal
+  // signal
 }

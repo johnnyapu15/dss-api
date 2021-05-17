@@ -6,5 +6,10 @@ module.exports = {
       "airbnb-base",
       // TypeScript ESLint recommanded style 적용
       "plugin:@typescript-eslint/eslint-recommended"
-    ]
+    ],
+    rules: {
+      "no-console":"off",
+      "import/no-unresolved": "off",
+      "import/extensions": "off",
+    }
   };
