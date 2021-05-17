@@ -1,13 +1,15 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable prefer-rest-params */
-import socketIO from 'socket.io';
+import socketIO, { Socket } from 'socket.io';
 import httpServer from 'http';
 import { SocketMessage, SocketEvent } from '.';
 import {
   allocID,
 } from '../memstore/auth';
 
-import { generateUUID } from '../memstore/commonFunctions';
-import { PUBSUBMessage, redis } from '../memstore';
+import { generateUUID, getMemberAddr } from '../memstore/commonFunctions';
+import { redis } from '../memstore';
+import { popFromArray, pushIntoArray } from '../memstore/cache';
 
 // Generate UUID of the socket server instance
 const instanceUUID = generateUUID().slice(0, 10);
@@ -18,40 +20,6 @@ function sendError(socket: socketIO.Socket, e: Error) {
   console.error(`Error for ${e.message}`);
   console.info(e);
   socket.emit('error', e.message);
-}
-
-async function attach(socket: socketIO.Socket, markerId: string, id: string) {
-  try {
-    // join
-    // local socket join
-    socket.join(markerId);
-    localSockets[id] = socket;
-    // subscribe to the marker
-    const message = await redis.init(`marker_${markerId}`, id);
-
-    redis.broadcast({
-      message,
-    } as PUBSUBMessage);
-  } catch (e) {
-    sendError(socket, e);
-  }
-}
-
-async function detach(this: socketIO.Socket, msg: SocketMessage) {
-  try {
-    const { id, markerId } = msg;
-    if (!id || !markerId) {
-      throw new Error('Invalid parameter');
-    }
-    const message = await redis.close(id, markerId);
-
-    redis.broadcast({
-      message,
-    } as PUBSUBMessage);
-    console.log(`closed ${id} on ${markerId}`);
-  } catch (e) {
-    sendError(this, e);
-  }
 }
 
 export function broadcast(msg: SocketMessage) {
@@ -69,31 +37,96 @@ export function unicast(msg: SocketMessage) {
   }
 }
 
+async function attach(socket: socketIO.Socket, markerId: string, id: string) {
+  try {
+    // join
+    // local socket join
+    socket.join(markerId);
+    localSockets[id] = socket;
+    // subscribe to the marker
+    const message = await redis.init(markerId, id);
+
+    broadcast(message);
+  } catch (e) {
+    sendError(socket, e);
+  }
+}
+
+async function detach(this: socketIO.Socket, msg: SocketMessage) {
+  try {
+    const { id, markerId } = msg;
+    if (!id || !markerId) {
+      throw new Error('Invalid parameter');
+    }
+    const message = await redis.close(markerId, id);
+
+    broadcast(message);
+    console.log(`closed ${id} on ${markerId}`);
+  } catch (e) {
+    sendError(this, e);
+  }
+}
+
+async function pushSignal(msg: SocketMessage) {
+  try {
+    const parsed = msg
+
+    if (parsed.sender) {
+      const sendTo = getMemberAddr(msg);
+      await pushIntoArray(sendTo, parsed.data);
+    }
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+async function popSignal(this: Socket, msg: SocketMessage) {
+  try {
+    const parsed = msg
+    if (parsed.sender) {
+      const sendTo = getMemberAddr(msg);
+      const got = await popFromArray(sendTo);
+      this.emit(SocketEvent.SIGNAL_POP, got);
+    }
+  } catch (e) {
+    console.log(e);
+  }
+}
+
 export function initWS(server: httpServer.Server) {
   io = new socketIO.Server(server, { transports: ['websocket'] });
 
   io.on('connection', async (socket) => {
-    const markerId = socket.handshake.query.markerId as string;
+    console.log('INIT START');
+    let markerId = socket.handshake.query.markerId as string;
     if (!markerId) {
       // ERROR
       console.log('No markerId');
+      markerId = 'anonymous';
     }
 
     const id = await allocID(`${instanceUUID}_${socket.id}`);
 
     socket
-      .on(SocketEvent.DETACH, detach.bind(socket, ...arguments))
-      .on(SocketEvent.SIGNAL_PUSH, () => { })
-      .on(SocketEvent.SIGNAL_POP, () => { })
+      .on('disconnect', async (stat) => {
+        console.log(`closing ${id} on ${markerId}`);
+        const message = await redis.close(markerId, id);
+
+        broadcast(message);
+        console.log(`closed ${id} on ${markerId}`);
+        detach.bind(socket, message);
+      })
+      .on(SocketEvent.SIGNAL_PUSH, pushSignal)
+      .on(SocketEvent.SIGNAL_POP, popSignal.bind(socket))
       .on('error', (e) => {
         console.log(e);
         socket.emit('error', e);
       })
-      .emit(SocketEvent.INIT, JSON.stringify({
+      .emit(SocketEvent.INIT, {
         socketEvent: SocketEvent.INIT,
         markerId,
         id,
-      } as SocketMessage));
+      } as SocketMessage);
 
     await attach(socket, markerId, id);
 
@@ -103,17 +136,6 @@ export function initWS(server: httpServer.Server) {
 }
 
 /// /////////////////////////
-/*
-async function signalHandler(msg: WebSocket.Data) {
-  try {
-    const parsed = JSON.parse(msg as string) as SocketMessage;
-    if (parsed.id) {
-      const sendTo = getMemberAddr(parsed.id, parsed.markerId);
-      await pushSignal(sendTo, parsed.data);
-      console.log(`${sendTo} => ${parsed.data}`);
-    }
-  } catch (e) {
-    throw e;
-  }
-}
-*/
+
+
+

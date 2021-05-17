@@ -1,5 +1,5 @@
 import { Router, json } from 'express';
-import auth from '../middleware/memstore';
+import { auth } from '../middleware/memstore/index';
 
 const markerRouter = Router();
 

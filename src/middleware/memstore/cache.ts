@@ -20,7 +20,6 @@ export async function addIntoSet(id: string, setId: string) {
   }
   (globalCache[setId] as Set<string>).add(id);
   const set = globalCache[setId] as Set<string>;
-
   return { isInit, set: [...set] };
 }
 
@@ -31,7 +30,7 @@ export async function deleteKey(id: string) {
 export async function deleteFromSet(id: string, setId: string) {
   const got = globalCache[setId];
   if (!got || !(got instanceof Set) || !got.has(id)) {
-    throw new NotFoundError('Invalid id');
+    throw new NotFoundError(`Invalid id ${got}`);
   } else {
     (globalCache[setId] as Set<string>).delete(id);
     const set = globalCache[setId] as Set<string>;
@@ -49,7 +48,7 @@ export async function pushIntoArray(id: string, data?: string) {
   if (data) {
     const cache = globalCache[id] as string[];
     cache.push(data);
-    console.log(cache);
+    console.log(`PUSH INTO ${id} ... LENGTH: ${cache.length}`);
   }
 
   return 0;
@@ -57,8 +56,10 @@ export async function pushIntoArray(id: string, data?: string) {
 
 export async function popFromArray(id: string) {
   const got = globalCache[id] as string[];
-  if (!got || got.length === 0) {
+  if (!got) {
     throw new NotFoundError('Invalid id');
+  } else if (got.length === 0) {
+    return undefined;
   } else {
     const data = got.shift();
     return data;
