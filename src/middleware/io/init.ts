@@ -16,7 +16,8 @@ const instanceUUID = generateUUID().slice(0, 10);
 let io: socketIO.Server;
 const localSockets: { [socketId: string]: socketIO.Socket } = {};
 
-function sendError(socket: socketIO.Socket, e: Error) {
+function sendError(id: string, e: Error) {
+  const socket = localSockets[id];
   console.error(`Error for ${e.message}`);
   console.info(e);
   socket.emit('error', e.message);
@@ -45,14 +46,13 @@ async function attach(socket: socketIO.Socket, markerId: string, id: string) {
     localSockets[id] = socket;
     // subscribe to the marker
     const message = await redis.init(markerId, id);
-
     broadcast(message);
   } catch (e) {
-    sendError(socket, e);
+    sendError(id, e);
   }
 }
 
-async function detach(this: socketIO.Socket, msg: SocketMessage) {
+async function onDetach(msg: SocketMessage) {
   try {
     const { id, markerId } = msg;
     if (!id || !markerId) {
@@ -63,24 +63,30 @@ async function detach(this: socketIO.Socket, msg: SocketMessage) {
     broadcast(message);
     console.log(`closed ${id} on ${markerId}`);
   } catch (e) {
-    sendError(this, e);
+    if (msg.sender) {
+      sendError(msg.sender, e);
+    }
   }
 }
 
-async function pushSignal(msg: SocketMessage) {
+async function onPushSignal(msg: SocketMessage) {
   try {
-    const parsed = msg
-
-    if (parsed.sender) {
+    if (msg.sender && msg.receiver) {
       const sendTo = getMemberAddr(msg);
-      await pushIntoArray(sendTo, parsed.data);
+      await pushIntoArray(sendTo, msg.data);
+      const receiver = localSockets[msg.receiver];
+      const returnMsg = msg;
+      returnMsg.socketEvent = SocketEvent.SIGNAL_POP;
+      receiver.emit(SocketEvent.SIGNAL_POP, returnMsg);
+    } else {
+      console.log('invalid msg?');
     }
   } catch (e) {
     console.log(e);
   }
 }
 
-async function popSignal(this: Socket, msg: SocketMessage) {
+async function onPopSignal(this: Socket, msg: SocketMessage) {
   try {
     const parsed = msg
     if (parsed.sender) {
@@ -98,26 +104,19 @@ export function initWS(server: httpServer.Server) {
 
   io.on('connection', async (socket) => {
     console.log('INIT START');
-    let markerId = socket.handshake.query.markerId as string;
-    if (!markerId) {
-      // ERROR
-      console.log('No markerId');
-      markerId = 'anonymous';
-    }
+    const markerIdGot = socket.handshake.query.markerId as string;
+    const markerId = !markerIdGot ? 'anonymous-room' : markerIdGot;
+    const userId = (socket.handshake.query.userId as string) ?? socket.id;
 
-    const id = await allocID(`${instanceUUID}_${socket.id}`);
+    const id = await allocID(userId);
 
     socket
+      .on(SocketEvent.DETACH, onDetach)
+      .on(SocketEvent.SIGNAL_PUSH, onPushSignal)
+      //.on(SocketEvent.SIGNAL_POP, onPopSignal.bind(socket))
       .on('disconnect', async (stat) => {
-        console.log(`closing ${id} on ${markerId}`);
-        const message = await redis.close(markerId, id);
-
-        broadcast(message);
-        console.log(`closed ${id} on ${markerId}`);
-        detach.bind(socket, message);
+        console.log(`disconnected.`);
       })
-      .on(SocketEvent.SIGNAL_PUSH, pushSignal)
-      .on(SocketEvent.SIGNAL_POP, popSignal.bind(socket))
       .on('error', (e) => {
         console.log(e);
         socket.emit('error', e);
@@ -136,6 +135,3 @@ export function initWS(server: httpServer.Server) {
 }
 
 /// /////////////////////////
-
-
-
