@@ -38,34 +38,21 @@ export function unicast(msg: SocketMessage) {
   }
 }
 
-
-
-async function attach(socket: socketIO.Socket, markerId: string, id: string) {
+async function onAttach(msg: SocketMessage) {
+  let sender;
   try {
     // join
     // local socket join
-    socket.join(markerId);
-    localSockets[id] = socket;
-    // subscribe to the marker
-    const message = await redis.init(markerId, id);
-    broadcast(message);
-  } catch (e) {
-    sendError(id, e);
-  }
-}
+    const { markerId } = msg;
+    sender = msg.sender;
 
-async function OnAttach(msg: SocketMessage) {
-  try {
-    // join
-    // local socket join
-    const { markerId, sender } = msg;
-    socket.join(markerId);
-    localSockets[sender] = socket;
     // subscribe to the marker
     const message = await redis.init(markerId, sender);
     broadcast(message);
   } catch (e) {
-    sendError(sender, e);
+    if (sender) {
+      sendError(sender, e);
+    }
   }
 }
 
@@ -145,7 +132,8 @@ export function initWS(server: httpServer.Server) {
         sender: id,
       } as SocketMessage);
 
-    await attach(socket, markerId, id);
+    socket.join(markerId);
+    localSockets[id] = socket;
 
     console.log(`init ${id} on ${markerId}`);
   });
