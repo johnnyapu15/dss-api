@@ -25,7 +25,7 @@ export async function attachIntoMarker(id: string, markerId: string) {
     socketEvent: SocketEvent.ATTACH,
     members: setData.set,
     markerId,
-    id,
+    sender: id,
   } as SocketMessage;
   return roomData;
 }
@@ -37,7 +37,7 @@ export async function detachFromMarker(id: string, markerId: string) {
     socketEvent: SocketEvent.DETACH,
     members: setData.set,
     markerId,
-    id,
+    sender: id,
   } as SocketMessage;
   return roomData;
 }

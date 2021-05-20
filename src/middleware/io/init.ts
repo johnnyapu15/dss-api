@@ -38,6 +38,8 @@ export function unicast(msg: SocketMessage) {
   }
 }
 
+
+
 async function attach(socket: socketIO.Socket, markerId: string, id: string) {
   try {
     // join
@@ -52,16 +54,31 @@ async function attach(socket: socketIO.Socket, markerId: string, id: string) {
   }
 }
 
+async function OnAttach(msg: SocketMessage) {
+  try {
+    // join
+    // local socket join
+    const { markerId, sender } = msg;
+    socket.join(markerId);
+    localSockets[sender] = socket;
+    // subscribe to the marker
+    const message = await redis.init(markerId, sender);
+    broadcast(message);
+  } catch (e) {
+    sendError(sender, e);
+  }
+}
+
 async function onDetach(msg: SocketMessage) {
   try {
-    const { id, markerId } = msg;
-    if (!id || !markerId) {
+    const { sender, markerId } = msg;
+    if (!sender || !markerId) {
       throw new Error('Invalid parameter');
     }
-    const message = await redis.close(markerId, id);
+    const message = await redis.close(markerId, sender);
 
     broadcast(message);
-    console.log(`closed ${id} on ${markerId}`);
+    console.log(`closed ${sender} on ${markerId}`);
   } catch (e) {
     if (msg.sender) {
       sendError(msg.sender, e);
@@ -111,6 +128,7 @@ export function initWS(server: httpServer.Server) {
     const id = await allocID(userId);
 
     socket
+      .on(SocketEvent.ATTACH, onAttach)
       .on(SocketEvent.DETACH, onDetach)
       .on(SocketEvent.SIGNAL_PUSH, onPushSignal)
       //.on(SocketEvent.SIGNAL_POP, onPopSignal.bind(socket))
@@ -124,7 +142,7 @@ export function initWS(server: httpServer.Server) {
       .emit(SocketEvent.INIT, {
         socketEvent: SocketEvent.INIT,
         markerId,
-        id,
+        sender: id,
       } as SocketMessage);
 
     await attach(socket, markerId, id);

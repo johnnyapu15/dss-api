@@ -15,7 +15,6 @@ export type SocketMessage = {
     markerId: string
     members?: string[]
     data?: string
-    id?: string
-    sender?: string
+    sender: string
     receiver?: string
 }
