@@ -98,6 +98,15 @@ async function onPushSignal(msg: SocketMessage) {
   }
 }
 
+async function onPreSignal(msg: SocketMessage) {
+  try {
+    console.log('presignaling')
+    unicast(msg);
+  } catch (e) {
+    console.log(e);
+  }
+}
+
 // async function onPopSignal(this: Socket, msg: SocketMessage) {
 //   try {
 //     const parsed = msg
@@ -126,6 +135,7 @@ export function initWS(server: httpServer.Server) {
       .on(SocketEvent.ATTACH, onAttach)
       .on(SocketEvent.DETACH, onDetach)
       .on(SocketEvent.SIGNAL, onPushSignal)
+      .on(SocketEvent.PRESIGNAL, onPreSignal)
       .on('disconnect', async (stat) => {
         detach(id, markerId);
         console.log('disconnected.');

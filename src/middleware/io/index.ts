@@ -7,6 +7,7 @@ export enum SocketEvent {
     ATTACH = 'ATTACH',
     DETACH = 'DETACH',
     SIGNAL = 'SIGNAL',
+    PRESIGNAL = 'PRESIGNAL',
 }
 
 export type SocketMessage = {
