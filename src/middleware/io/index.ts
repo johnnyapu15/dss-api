@@ -6,16 +6,14 @@ export enum SocketEvent {
     INIT = 'INIT',
     ATTACH = 'ATTACH',
     DETACH = 'DETACH',
-    SIGNAL_PUSH = 'SIGNAL_PUSH',
-    SIGNAL_POP = 'SIGNAL_POP',
+    SIGNAL = 'SIGNAL',
 }
 
 export type SocketMessage = {
     socketEvent: SocketEvent
     markerId: string
     members?: string[]
+    sender: string
     data?: string
-    id?: string
-    sender?: string
     receiver?: string
 }

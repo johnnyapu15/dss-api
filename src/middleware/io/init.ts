@@ -7,12 +7,10 @@ import {
   allocID,
 } from '../memstore/auth';
 
-import { generateUUID, getMemberAddr } from '../memstore/commonFunctions';
+import { getMemberAddr } from '../memstore/commonFunctions';
 import { redis } from '../memstore';
-import { popFromArray, pushIntoArray } from '../memstore/cache';
+import { pushIntoArray } from '../memstore/cache';
 
-// Generate UUID of the socket server instance
-const instanceUUID = generateUUID().slice(0, 10);
 let io: socketIO.Server;
 const localSockets: { [socketId: string]: socketIO.Socket } = {};
 
@@ -26,7 +24,7 @@ function sendError(id: string, e: Error) {
 export function broadcast(msg: SocketMessage) {
   // 이 서버에 연결된 소켓에 해당하는 멤버에게 브로드캐스트
   io
-    .to(msg.markerId)
+    .of(msg.markerId)
     .emit(msg.socketEvent, msg);
 }
 
@@ -38,30 +36,37 @@ export function unicast(msg: SocketMessage) {
   }
 }
 
-async function attach(socket: socketIO.Socket, markerId: string, id: string) {
+async function onAttach(msg: SocketMessage) {
+  let sender;
+  console.log(msg);
   try {
     // join
     // local socket join
-    socket.join(markerId);
-    localSockets[id] = socket;
+    const { markerId } = msg;
+    sender = msg.sender;
+
     // subscribe to the marker
-    const message = await redis.init(markerId, id);
+    const message = await redis.init(markerId, sender);
     broadcast(message);
   } catch (e) {
-    sendError(id, e);
+    if (sender) {
+      sendError(sender, e);
+    }
   }
 }
 
 async function onDetach(msg: SocketMessage) {
   try {
-    const { id, markerId } = msg;
-    if (!id || !markerId) {
-      throw new Error('Invalid parameter');
+    console.log(msg)
+    const { sender, markerId } = msg;
+    if (!sender || !markerId) {
+
+      throw new Error(`Invalid parameter ${msg}`);
     }
-    const message = await redis.close(markerId, id);
+    const message = await redis.close(markerId, sender);
 
     broadcast(message);
-    console.log(`closed ${id} on ${markerId}`);
+    console.log(`closed ${sender} on ${markerId}`);
   } catch (e) {
     if (msg.sender) {
       sendError(msg.sender, e);
@@ -69,15 +74,22 @@ async function onDetach(msg: SocketMessage) {
   }
 }
 
+async function detach(sender: string, markerId: string) {
+  const message = await redis.close(markerId, sender);
+  broadcast(message);
+  console.log(`closed ${sender} on ${markerId}`);
+}
+
 async function onPushSignal(msg: SocketMessage) {
   try {
+    console.log(`signal = ${msg}`)
     if (msg.sender && msg.receiver) {
+
       const sendTo = getMemberAddr(msg);
       await pushIntoArray(sendTo, msg.data);
-      const receiver = localSockets[msg.receiver];
       const returnMsg = msg;
-      returnMsg.socketEvent = SocketEvent.SIGNAL_POP;
-      receiver.emit(SocketEvent.SIGNAL_POP, returnMsg);
+      returnMsg.socketEvent = SocketEvent.SIGNAL;
+      unicast(returnMsg);
     } else {
       console.log('invalid msg?');
     }
@@ -86,52 +98,53 @@ async function onPushSignal(msg: SocketMessage) {
   }
 }
 
-async function onPopSignal(this: Socket, msg: SocketMessage) {
-  try {
-    const parsed = msg
-    if (parsed.sender) {
-      const sendTo = getMemberAddr(msg);
-      const got = await popFromArray(sendTo);
-      this.emit(SocketEvent.SIGNAL_POP, got);
-    }
-  } catch (e) {
-    console.log(e);
-  }
-}
+// async function onPopSignal(this: Socket, msg: SocketMessage) {
+//   try {
+//     const parsed = msg
+//     if (parsed.sender) {
+//       const sendTo = getMemberAddr(msg);
+//       const got = await popFromArray(sendTo);
+//       this.emit(SocketEvent.SIGNAL_POP, got);
+//     }
+//   } catch (e) {
+//     console.log(e);
+//   }
+// }
 
 export function initWS(server: httpServer.Server) {
-  io = new socketIO.Server(server, { transports: ['websocket'] });
-
-  io.on('connection', async (socket) => {
+  io = new socketIO.Server(server, { transports: ['websocket'], path: '/' });
+  io.of(/^\/\w*/).on('connection', async (socket) => {
+    const namespace = socket.nsp;
     console.log('INIT START');
-    const markerIdGot = socket.handshake.query.markerId as string;
-    const markerId = !markerIdGot ? 'anonymous-room' : markerIdGot;
+    const markerIdGot = namespace.name as string;
+    const markerId = !markerIdGot ? '/anonymous-room' : markerIdGot;
     const userId = (socket.handshake.query.userId as string) ?? socket.id;
 
     const id = await allocID(userId);
 
     socket
+      .on(SocketEvent.ATTACH, onAttach)
       .on(SocketEvent.DETACH, onDetach)
-      .on(SocketEvent.SIGNAL_PUSH, onPushSignal)
-      //.on(SocketEvent.SIGNAL_POP, onPopSignal.bind(socket))
+      .on(SocketEvent.SIGNAL, onPushSignal)
       .on('disconnect', async (stat) => {
-        console.log(`disconnected.`);
+        detach(id, markerId);
+        console.log('disconnected.');
       })
       .on('error', (e) => {
-        console.log(e);
+        console.log('errrrr')
         socket.emit('error', e);
       })
       .emit(SocketEvent.INIT, {
         socketEvent: SocketEvent.INIT,
         markerId,
-        id,
+        sender: id,
       } as SocketMessage);
 
-    await attach(socket, markerId, id);
+    localSockets[id] = socket;
 
     console.log(`init ${id} on ${markerId}`);
   });
-  console.log(`socket init for ${io.path()}`);
+  console.log('socket init');
 }
 
 /// /////////////////////////
