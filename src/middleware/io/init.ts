@@ -1,15 +1,10 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable prefer-rest-params */
-import socketIO, { Socket } from 'socket.io';
+import socketIO from 'socket.io';
 import httpServer from 'http';
 import { SocketMessage, SocketEvent } from '.';
-import {
-  allocID,
-} from '../memstore/auth';
-
-import { getMemberAddr } from '../memstore/commonFunctions';
-import { redis } from '../memstore';
-import { pushIntoArray } from '../memstore/cache';
+import { allocID, getMemberAddr } from './commonFunctions';
+import { cache } from '../memstore';
 
 let io: socketIO.Server;
 const localSockets: { [socketId: string]: socketIO.Socket } = {};
@@ -46,7 +41,14 @@ async function onAttach(msg: SocketMessage) {
     sender = msg.sender;
 
     // subscribe to the marker
-    const message = await redis.init(markerId, sender);
+    const setData = await cache.addIntoSet(sender, markerId);
+    const message = {
+      socketEvent: SocketEvent.ATTACH,
+      members: setData.set,
+      markerId,
+      sender,
+    } as SocketMessage;
+
     broadcast(message);
   } catch (e) {
     if (sender) {
@@ -55,18 +57,29 @@ async function onAttach(msg: SocketMessage) {
   }
 }
 
+async function detach(sender: string, markerId: string) {
+  await cache.deleteKey(sender);
+  const setData = await cache.deleteFromSet(sender, markerId);
+  const message = {
+    socketEvent: SocketEvent.DETACH,
+    members: setData.set,
+    markerId,
+    sender,
+  } as SocketMessage;
+
+  broadcast(message);
+  console.log(`closed ${sender} on ${markerId}`);
+}
+
 async function onDetach(msg: SocketMessage) {
   try {
-    console.log(msg)
+    console.log(msg);
     const { sender, markerId } = msg;
     if (!sender || !markerId) {
-
       throw new Error(`Invalid parameter ${msg}`);
     }
-    const message = await redis.close(markerId, sender);
 
-    broadcast(message);
-    console.log(`closed ${sender} on ${markerId}`);
+    await detach(sender, markerId);
   } catch (e) {
     if (msg.sender) {
       sendError(msg.sender, e);
@@ -74,19 +87,12 @@ async function onDetach(msg: SocketMessage) {
   }
 }
 
-async function detach(sender: string, markerId: string) {
-  const message = await redis.close(markerId, sender);
-  broadcast(message);
-  console.log(`closed ${sender} on ${markerId}`);
-}
-
 async function onPushSignal(msg: SocketMessage) {
   try {
-    console.log(`signal = ${msg}`)
+    console.log(`signal = ${msg}`);
     if (msg.sender && msg.receiver) {
-
       const sendTo = getMemberAddr(msg);
-      await pushIntoArray(sendTo, msg.data);
+      await cache.pushIntoArray(sendTo, msg.data);
       const returnMsg = msg;
       returnMsg.socketEvent = SocketEvent.SIGNAL;
       unicast(returnMsg);
@@ -100,25 +106,12 @@ async function onPushSignal(msg: SocketMessage) {
 
 async function onPreSignal(msg: SocketMessage) {
   try {
-    console.log('presignaling')
+    console.log('presignaling');
     unicast(msg);
   } catch (e) {
     console.log(e);
   }
 }
-
-// async function onPopSignal(this: Socket, msg: SocketMessage) {
-//   try {
-//     const parsed = msg
-//     if (parsed.sender) {
-//       const sendTo = getMemberAddr(msg);
-//       const got = await popFromArray(sendTo);
-//       this.emit(SocketEvent.SIGNAL_POP, got);
-//     }
-//   } catch (e) {
-//     console.log(e);
-//   }
-// }
 
 export function initWS(server: httpServer.Server) {
   io = new socketIO.Server(server, { transports: ['websocket'], path: '/' });
@@ -141,7 +134,7 @@ export function initWS(server: httpServer.Server) {
         console.log('disconnected.');
       })
       .on('error', (e) => {
-        console.log('errrrr')
+        console.log('errrrr');
         socket.emit('error', e);
       })
       .emit(SocketEvent.INIT, {
@@ -156,5 +149,3 @@ export function initWS(server: httpServer.Server) {
   });
   console.log('socket init');
 }
-
-/// /////////////////////////

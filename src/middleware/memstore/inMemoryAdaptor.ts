@@ -2,9 +2,7 @@ import { BadRequestError, NotFoundError } from '../error';
 
 /**
  * TODO
- * 확장 가능하려면 외부 DB를 이용해야 함.
- * 외부 DB를 이용한다고 하면 서버 인스턴스에서 관리하는 소켓들이
- * 해당 DB를 이벤트 리스너로 연결돼야 함.
+ * Redis adaptor 필요
  */
 const globalCache: { [key: string]: Set<string> | string[] } = {};
 
