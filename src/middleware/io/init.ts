@@ -2,7 +2,7 @@
 /* eslint-disable prefer-rest-params */
 import socketIO from 'socket.io';
 import httpServer from 'http';
-import { SocketMessage, SocketEvent } from '.';
+import { WebRTCMessage, SocketEvent } from '.';
 import { allocID, getMemberAddr } from './commonFunctions';
 import { cache } from '../memstore';
 
@@ -16,14 +16,14 @@ function sendError(id: string, e: Error) {
   socket.emit('error', e.message);
 }
 
-export function broadcast(msg: SocketMessage) {
+export function broadcast(msg: WebRTCMessage) {
   // 이 서버에 연결된 소켓에 해당하는 멤버에게 브로드캐스트
   io
     .of(msg.markerId)
     .emit(msg.socketEvent, msg);
 }
 
-export function unicast(msg: SocketMessage) {
+export function unicast(msg: WebRTCMessage) {
   // 이 서버에 연결된 소켓 멤버에 유니캐스트
   const { receiver } = msg;
   if (receiver && localSockets[receiver]) {
@@ -31,7 +31,7 @@ export function unicast(msg: SocketMessage) {
   }
 }
 
-async function onAttach(msg: SocketMessage) {
+async function onAttach(msg: WebRTCMessage) {
   let sender;
   console.log(msg);
   try {
@@ -44,10 +44,10 @@ async function onAttach(msg: SocketMessage) {
     const setData = await cache.addIntoSet(sender, markerId);
     const message = {
       socketEvent: SocketEvent.ATTACH,
-      members: setData.set,
+      members: [...setData],
       markerId,
       sender,
-    } as SocketMessage;
+    } as WebRTCMessage;
 
     broadcast(message);
   } catch (e) {
@@ -62,16 +62,16 @@ async function detach(sender: string, markerId: string) {
   const setData = await cache.deleteFromSet(sender, markerId);
   const message = {
     socketEvent: SocketEvent.DETACH,
-    members: setData.set,
+    members: [...setData],
     markerId,
     sender,
-  } as SocketMessage;
+  } as WebRTCMessage;
 
   broadcast(message);
   console.log(`closed ${sender} on ${markerId}`);
 }
 
-async function onDetach(msg: SocketMessage) {
+async function onDetach(msg: WebRTCMessage) {
   try {
     console.log(msg);
     const { sender, markerId } = msg;
@@ -87,7 +87,7 @@ async function onDetach(msg: SocketMessage) {
   }
 }
 
-async function onPushSignal(msg: SocketMessage) {
+async function onPushSignal(msg: WebRTCMessage) {
   try {
     console.log(`signal = ${msg}`);
     if (msg.sender && msg.receiver) {
@@ -104,7 +104,7 @@ async function onPushSignal(msg: SocketMessage) {
   }
 }
 
-async function onPreSignal(msg: SocketMessage) {
+async function onPreSignal(msg: WebRTCMessage) {
   try {
     console.log('presignaling');
     unicast(msg);
@@ -141,7 +141,7 @@ export function initWS(server: httpServer.Server) {
         socketEvent: SocketEvent.INIT,
         markerId,
         sender: id,
-      } as SocketMessage);
+      } as WebRTCMessage);
 
     localSockets[id] = socket;
 

@@ -2,7 +2,7 @@
 /* eslint-disable no-shadow */
 
 import { Request, Response, NextFunction } from 'express';
-import { SocketMessage } from '../io';
+import { WebRTCMessage } from '../io';
 import { allocID } from '../io/commonFunctions';
 import { popFromArray, pushIntoArray } from './inMemoryAdaptor';
 
@@ -16,7 +16,7 @@ export enum PUBSUBMessageType {
 
 export type PUBSUBMessage = {
     type?: PUBSUBMessageType
-    message: SocketMessage
+    message: WebRTCMessage
 }
 
 // HTTP middelwares

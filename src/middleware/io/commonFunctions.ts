@@ -1,5 +1,5 @@
 import { v4 } from 'uuid';
-import { SocketMessage } from '.';
+import { WebRTCMessage } from '.';
 import { cache } from '../memstore';
 
 export function generateUUID() {
@@ -7,7 +7,7 @@ export function generateUUID() {
   return rand;
 }
 
-export function getMemberAddr(msg: SocketMessage) {
+export function getMemberAddr(msg: WebRTCMessage) {
   if (msg.sender && msg.receiver) {
     return `${msg.sender}_to_${msg.receiver}`;
   }
