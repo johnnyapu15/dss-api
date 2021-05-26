@@ -3,50 +3,63 @@ import redis from 'redis';
 import { promisify } from 'util';
 import { BadRequestError, NotFoundError } from '../error';
 
-class RedisCache implements CustomCache {
-  getClient = redis.createClient;
+export default class RedisCache implements CustomCache {
+  port = process.env.REDIS_PORT || 6379
+
+  host = process.env.REDIS_HOST || 'localhost'
+
+  getClient = (() => (
+    redis.createClient).bind(this.port,
+      {
+        host: this.host,
+      } as redis.ClientOpts))();
+
+  client = this.getClient();
+
+  get = promisify(this.client.get).bind(this.client);
+
+  set = promisify(this.client.set).bind(this.client);
+
+  sadd = <(arg0: string, arg1: string) => Promise<number>>
+    promisify(this.client.sadd).bind(this.client);
+
+  smembers = promisify(this.client.smembers).bind(this.client);
+
+  srem = <(arg0: string, arg1: string) => Promise<number>>
+    promisify(this.client.srem).bind(this.client);
+
+  lpush = <(arg0: string, arg1: string) => Promise<number>>
+    promisify(this.client.lpush).bind(this.client);
+
+  lpop = <(arg0: string) => Promise<string | undefined>>
+    promisify(this.client.lpop).bind(this.client);
 
   async addIntoSet(id: string, setId: string) {
-    const client = this.getClient();
-    const sadd = <(arg0: string, arg1: string) => Promise<number>>
-      promisify(client.sadd).bind(client);
-    await sadd(setId, id);
-
-    const get = promisify(client.smembers).bind(client);
-    const got = await get(setId);
+    await this.sadd(setId, id);
+    const got = await this.smembers(setId);
     return new Set(got);
   }
 
   deleteKey(id: string) {
-    const client = this.getClient();
-    client.del(id);
+    this.client.del(id);
   }
 
   async deleteFromSet(id: string, setId: string) {
-    const client = this.getClient();
-    const srem = <(arg0: string) => Promise<number>>promisify(client.srem).bind(client);
-    await srem(id);
+    await this.srem(setId, id);
 
-    const get = promisify(client.smembers).bind(client);
-    const got = await get(setId);
+    const got = await this.smembers(setId);
     return new Set(got);
   }
 
   async pushIntoArray(id: string, data?: string) {
-    const client = this.getClient();
-    const lpush = <(arg0: string, arg1: string) => Promise<number>>
-      promisify(client.lpush).bind(client);
     if (data) {
-      const len = await lpush(id, data);
+      const len = await this.lpush(id, data);
       console.log(`PUSH INTO ${id} ... LENGTH: ${len}`);
     }
   }
 
   async popFromArray(id: string) {
-    const client = this.getClient();
-    const lpop = <(arg0: string) => Promise<string | undefined>>
-      promisify(client.lpop).bind(client);
-    const got = await lpop(id);
+    const got = await this.lpop(id);
     if (!got) {
       throw new NotFoundError('Invalid id');
     } else {
