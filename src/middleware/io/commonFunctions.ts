@@ -1,5 +1,5 @@
 import { v4 } from 'uuid';
-import { WebRTCMessage } from '.';
+import { NoteMessage, WebRTCMessage } from '.';
 import { cache } from '../memstore';
 
 export function generateUUID() {
@@ -26,4 +26,12 @@ export async function allocID(id?: string) {
   // create empty signal placeholder (array)
   await cache.pushIntoArray(id);
   return id;
+}
+
+export function getNoteId(note: NoteMessage) {
+  return `POSTIT_${note.markerId}_${note.userId}_${note.noteId}`;
+}
+
+export function getPattern(markerId: string) {
+  return `POSTIT_${markerId}*`;
 }

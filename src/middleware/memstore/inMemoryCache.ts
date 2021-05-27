@@ -1,8 +1,24 @@
 /* eslint-disable class-methods-use-this */
 import { BadRequestError, NotFoundError } from '../error';
 // eslint-disable-next-line no-underscore-dangle
-const _cache: { [key: string]: Set<string> | string[] } = { };
+const _cache: { [key: string]: Set<string> | string[] } = {};
 export default class InMemoryCache implements CustomCache {
+  pget(pattern: string): Promise<string[]> {
+    throw new Error('Method not implemented.');
+  }
+  del(key: string): Promise<number> {
+    throw new Error('Method not implemented.');
+  }
+  exists(key: string): Promise<number> {
+    return new Promise<number>((resolve) => { if (_cache[key] !== undefined) resolve(1) else resolve(0) })
+  }
+  set(key: string, value: string): Promise<unknown> {
+    throw new Error('Method not implemented.');
+  }
+  get(key: string): Promise<string | null> {
+    throw new Error('Method not implemented.');
+  }
+
   addIntoSet(id: string, setId: string) {
     const got = _cache[setId];
     if (!got) {

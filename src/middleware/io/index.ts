@@ -39,3 +39,9 @@ export type NoteMessage = {
     createDt        : string
     updateDt        : string
 }
+
+export type NoteMessageArray = {
+    socketEvent     : SocketEvent
+    markerId        : string
+    notes           : NoteMessage[]
+}

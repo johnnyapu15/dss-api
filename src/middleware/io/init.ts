@@ -2,21 +2,23 @@
 /* eslint-disable prefer-rest-params */
 import socketIO from 'socket.io';
 import httpServer from 'http';
-import { WebRTCMessage, SocketEvent } from '.';
-import { allocID, getMemberAddr } from './commonFunctions';
-import { cache } from '../memstore';
+import {
+  WebRTCMessage, SocketEvent, NoteMessage, NoteMessageArray,
+} from '.';
+import { allocID } from './commonFunctions';
+import {
+  onAttach, onDetach, onDisconnect, onError, onPreSignal, onPushSignal,
+} from './eventHandlers';
 
 let io: socketIO.Server;
-const localSockets: { [socketId: string]: socketIO.Socket } = {};
+export const localSockets: { [socketId: string]: socketIO.Socket } = {};
 
-function sendError(id: string, e: Error) {
-  const socket = localSockets[id];
-  console.error(`Error for ${e.message}`);
-  console.info(e);
-  socket.emit('error', e.message);
+export interface SocketMetadata {
+  id: string
+  markerId: string
 }
 
-export function broadcast(msg: WebRTCMessage) {
+export function broadcast(msg: WebRTCMessage | NoteMessage | NoteMessageArray) {
   // 이 서버에 연결된 소켓에 해당하는 멤버에게 브로드캐스트
   io
     .of(msg.markerId)
@@ -31,88 +33,6 @@ export function unicast(msg: WebRTCMessage) {
   }
 }
 
-async function onAttach(msg: WebRTCMessage) {
-  let sender;
-  console.log(msg);
-  try {
-    // join
-    // local socket join
-    const { markerId } = msg;
-    sender = msg.sender;
-
-    // subscribe to the marker
-    const setData = await cache.addIntoSet(sender, markerId);
-    const message = {
-      socketEvent: SocketEvent.ATTACH,
-      members: [...setData],
-      markerId,
-      sender,
-    } as WebRTCMessage;
-
-    broadcast(message);
-  } catch (e) {
-    if (sender) {
-      sendError(sender, e);
-    }
-  }
-}
-
-async function detach(sender: string, markerId: string) {
-  await cache.deleteKey(sender);
-  const setData = await cache.deleteFromSet(sender, markerId);
-  const message = {
-    socketEvent: SocketEvent.DETACH,
-    members: [...setData],
-    markerId,
-    sender,
-  } as WebRTCMessage;
-
-  broadcast(message);
-  console.log(`closed ${sender} on ${markerId}`);
-}
-
-async function onDetach(msg: WebRTCMessage) {
-  try {
-    console.log(msg);
-    const { sender, markerId } = msg;
-    if (!sender || !markerId) {
-      throw new Error(`Invalid parameter ${msg}`);
-    }
-
-    await detach(sender, markerId);
-  } catch (e) {
-    if (msg.sender) {
-      sendError(msg.sender, e);
-    }
-  }
-}
-
-async function onPushSignal(msg: WebRTCMessage) {
-  try {
-    console.log(`signal = ${msg}`);
-    if (msg.sender && msg.receiver) {
-      const sendTo = getMemberAddr(msg);
-      await cache.pushIntoArray(sendTo, msg.data);
-      const returnMsg = msg;
-      returnMsg.socketEvent = SocketEvent.SIGNAL;
-      unicast(returnMsg);
-    } else {
-      console.log('invalid msg?');
-    }
-  } catch (e) {
-    console.log(e);
-  }
-}
-
-async function onPreSignal(msg: WebRTCMessage) {
-  try {
-    console.log('presignaling');
-    unicast(msg);
-  } catch (e) {
-    console.log(e);
-  }
-}
-
 export function initWS(server: httpServer.Server) {
   io = new socketIO.Server(server, { transports: ['websocket'], path: '/' });
   io.of(/^\/\w*/).on('connection', async (socket) => {
@@ -124,19 +44,15 @@ export function initWS(server: httpServer.Server) {
 
     const id = await allocID(userId);
 
+    const metadata = { id, markerId } as SocketMetadata;
+
     socket
       .on(SocketEvent.ATTACH, onAttach)
       .on(SocketEvent.DETACH, onDetach)
       .on(SocketEvent.SIGNAL, onPushSignal)
       .on(SocketEvent.PRESIGNAL, onPreSignal)
-      .on('disconnect', async (stat) => {
-        detach(id, markerId);
-        console.log('disconnected.');
-      })
-      .on('error', (e) => {
-        console.log('errrrr');
-        socket.emit('error', e);
-      })
+      .on('disconnect', onDisconnect.bind(metadata))
+      .on('error', onError.bind(metadata))
       .emit(SocketEvent.INIT, {
         socketEvent: SocketEvent.INIT,
         markerId,

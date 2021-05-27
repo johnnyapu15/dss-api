@@ -16,9 +16,24 @@ export default class RedisCache implements CustomCache {
 
   client = this.getClient();
 
+  exists = <(arg0: string) => Promise<number>>
+    promisify(this.client.exists).bind(this.client);
+
+  del = promisify(this.client.del).bind(this.client);
+
   get = promisify(this.client.get).bind(this.client);
 
-  set = promisify(this.client.set).bind(this.client);
+  set = <(arg0: string, arg1: string) => Promise<redis.Callback<'OK'> | undefined>>
+    promisify(this.client.set).bind(this.client);
+
+  keys = promisify(this.client.keys).bind(this.client);
+
+  mget = <(arg0: string[]) => Promise<string[]>> promisify(this.client.mget).bind(this.client);
+
+  pget = async (pattern: string):Promise<string[]> => {
+    const keys = await this.keys(pattern);
+    return this.mget(keys);
+  }
 
   sadd = <(arg0: string, arg1: string) => Promise<number>>
     promisify(this.client.sadd).bind(this.client);

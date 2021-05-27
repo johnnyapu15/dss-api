@@ -17,17 +17,6 @@ export const cache = (() => {
   return new InMemoryCache();
 })();
 
-export enum PUBSUBMessageType {
-  BROADCAST = '',
-  UNICAST = '',
-
-}
-
-export type PUBSUBMessage = {
-  type?: PUBSUBMessageType
-  message: WebRTCMessage
-}
-
 export async function generateIDMW(req: Request, res: Response, next: NextFunction) {
   try {
     const id = allocID();
@@ -36,4 +25,3 @@ export async function generateIDMW(req: Request, res: Response, next: NextFuncti
     next(e);
   }
 }
-// end HTTP middelwares
