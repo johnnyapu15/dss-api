@@ -13,6 +13,7 @@ export default class InMemoryCache implements CustomCache {
     return new Promise<number>((resolve) => { if (_cache[key] !== undefined) resolve(1); else resolve(0); })
   }
   set(key: string, value: string): Promise<unknown> {
+    console.log(`${key}, ${value}`)
     throw new Error('Method not implemented.');
   }
   get(key: string): Promise<string | null> {
