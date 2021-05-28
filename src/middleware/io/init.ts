@@ -7,7 +7,7 @@ import {
 } from '.';
 import { allocID } from './commonFunctions';
 import {
-  onAttach, onDetach, onDisconnect, onError, onPreSignal, onPushSignal,
+  onAttach, onCreateNote, onDeleteNote, onDetach, onDisconnect, onError, onPreSignal, onPushSignal, onUpdateNote,
 } from './eventHandlers';
 
 let io: socketIO.Server;
@@ -51,6 +51,9 @@ export function initWS(server: httpServer.Server) {
       .on(SocketEvent.DETACH, onDetach)
       .on(SocketEvent.SIGNAL, onPushSignal)
       .on(SocketEvent.PRESIGNAL, onPreSignal)
+      .on(SocketEvent.CREATE_NOTE, onCreateNote)
+      .on(SocketEvent.UPDATE_NOTE, onUpdateNote)
+      .on(SocketEvent.DELETE_NOTE, onDeleteNote)
       .on('disconnect', onDisconnect.bind(metadata))
       .on('error', onError.bind(metadata))
       .emit(SocketEvent.INIT, {
