@@ -10,7 +10,7 @@ export default class InMemoryCache implements CustomCache {
     throw new Error('Method not implemented.');
   }
   exists(key: string): Promise<number> {
-    return new Promise<number>((resolve) => { if (_cache[key] !== undefined) resolve(1) else resolve(0) })
+    return new Promise<number>((resolve) => { if (_cache[key] !== undefined) resolve(1); else resolve(0); })
   }
   set(key: string, value: string): Promise<unknown> {
     throw new Error('Method not implemented.');
