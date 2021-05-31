@@ -31,11 +31,15 @@ export default class RedisCache implements CustomCache {
 
   keys = promisify(this.client.keys).bind(this.client);
 
-  mget = <(arg0: string[]) => Promise<string[]>> promisify(this.client.mget).bind(this.client);
+  mget = <(arg0: string[]) => Promise<string[]>>promisify(this.client.mget).bind(this.client);
 
-  pget = async (pattern: string):Promise<string[]> => {
+  pget = async (pattern: string): Promise<string[]> => {
     const keys = await this.keys(pattern);
-    return this.mget(keys);
+    if (keys) {
+      return this.mget(keys);
+    }
+
+    return [];
   }
 
   sadd = <(arg0: string, arg1: string) => Promise<number>>
