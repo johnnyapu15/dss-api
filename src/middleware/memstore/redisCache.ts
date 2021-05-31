@@ -8,10 +8,13 @@ export default class RedisCache implements CustomCache {
 
   host = process.env.REDIS_HOST || 'localhost'
 
+  authPass = process.env.REDIS_AUTH || undefined
+
   getClient = (() => (
     redis.createClient).bind(this.port,
       {
         host: this.host,
+        auth_pass: this.authPass,
       } as redis.ClientOpts))();
 
   client = this.getClient();

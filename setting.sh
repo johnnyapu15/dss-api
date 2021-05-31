@@ -1,0 +1,3 @@
+set REDIS_PORT=6379
+set REDIS_HOST=127.0.0.1
+set REDIS_AUTH=!dlatl00
