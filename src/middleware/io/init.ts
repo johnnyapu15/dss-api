@@ -1,13 +1,15 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable prefer-rest-params */
-import socketIO from 'socket.io';
+import socketIO, { Socket } from 'socket.io';
 import httpServer from 'http';
 import {
-  WebRTCMessage, SocketEvent, NoteMessage, NoteMessageArray,
+  WebRTCMessage, SocketEvent, NoteMessage, NoteMessageArray, RefreshNote,
 } from '.';
 import { allocID } from './commonFunctions';
 import {
-  onAttach, onDetach, onDisconnect, onError, onPreSignal, onPushSignal,
+  onAttach, onCreateNote, onDeleteNote, onDetach,
+  onDisconnect, onError, onPreSignal, onPushSignal,
+  onUpdateNote, retrieveNote,
 } from './eventHandlers';
 
 let io: socketIO.Server;
@@ -18,11 +20,13 @@ export interface SocketMetadata {
   markerId: string
 }
 
-export function broadcast(msg: WebRTCMessage | NoteMessage | NoteMessageArray) {
+export function broadcast(msg: WebRTCMessage | NoteMessage | NoteMessageArray | RefreshNote) {
   // 이 서버에 연결된 소켓에 해당하는 멤버에게 브로드캐스트
-  io
-    .of(msg.markerId)
-    .emit(msg.socketEvent, msg);
+  if (msg.socketEvent) {
+    io
+      .of(msg.markerId)
+      .emit(msg.socketEvent, msg);
+  }
 }
 
 export function unicast(msg: WebRTCMessage) {
@@ -51,6 +55,10 @@ export function initWS(server: httpServer.Server) {
       .on(SocketEvent.DETACH, onDetach)
       .on(SocketEvent.SIGNAL, onPushSignal)
       .on(SocketEvent.PRESIGNAL, onPreSignal)
+      .on(SocketEvent.CREATE_NOTE, onCreateNote)
+      .on(SocketEvent.UPDATE_NOTE, onUpdateNote)
+      .on(SocketEvent.DELETE_NOTE, onDeleteNote)
+      .on(SocketEvent.RETRIEVE_NOTE, retrieveNote.bind(metadata))
       .on('disconnect', onDisconnect.bind(metadata))
       .on('error', onError.bind(metadata))
       .emit(SocketEvent.INIT, {

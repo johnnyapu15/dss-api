@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import {
-  NoteMessage, NoteMessageArray, SocketEvent, WebRTCMessage,
+  NoteMessage, NoteMessageArray, RefreshNote, SocketEvent, WebRTCMessage,
 } from '.';
 import { cache } from '../memstore';
 import { getMemberAddr, getNoteId, getPattern } from './commonFunctions';
@@ -107,35 +107,69 @@ export async function onPreSignal(msg: WebRTCMessage) {
 }
 
 /** Note 단위로 수정/삭제/생성 -> 추후, redis의 hash를 이용해 필드 단위로 접근하도록 변경할 수 있음. */
-export async function refreshNote(msg: NoteMessage) {
+export async function refreshNote(msg: RefreshNote) {
   broadcast(msg);
 }
 
 export async function onCreateNote(msg: NoteMessage) {
-  const id = getNoteId(msg);
-  cache.set(id, JSON.stringify(msg));
-  refreshNote(msg);
+  const data = msg;
+  data.socketEvent = undefined;
+  if (!data.createDt) {
+    data.createDt = new Date().toISOString();
+  }
+  const id = getNoteId(data);
+
+  cache.set(id, JSON.stringify(data));
+
+  const { markerId } = data;
+  const refresh = {
+    markerId,
+    socketEvent: SocketEvent.REFRESH_NOTE,
+    note: data,
+    type: 'create',
+  } as RefreshNote;
+  refreshNote(refresh);
 }
 
 export async function onUpdateNote(msg: NoteMessage) {
-  const id = getNoteId(msg);
+  const data = msg;
+  data.socketEvent = undefined;
+  if (!data.updateDt) {
+    data.updateDt = new Date().toISOString();
+  }
+  const id = getNoteId(data);
   const exists = await cache.exists(id);
   if (exists) {
-    cache.set(id, JSON.stringify(msg));
-    refreshNote(msg);
+    cache.set(id, JSON.stringify(data));
+    const { markerId } = data;
+    const refresh = {
+      markerId,
+      socketEvent: SocketEvent.REFRESH_NOTE,
+      note: data,
+      type: 'update',
+    } as RefreshNote;
+    refreshNote(refresh);
   }
 }
 
 export async function onDeleteNote(msg: NoteMessage) {
-  const id = getNoteId(msg);
+  const data = msg;
+  data.socketEvent = undefined;
+  const id = getNoteId(data);
   const exists = await cache.exists(id);
   if (exists) {
     cache.del(id);
-    // refreshNote()
+    const { markerId } = data;
+    const refresh = {
+      markerId,
+      socketEvent: SocketEvent.REFRESH_NOTE,
+      note: data,
+      type: 'delete',
+    } as RefreshNote;
+    refreshNote(refresh);
   }
 }
 
-// test 필요
 export async function retrieveNote(this: SocketMetadata) {
   const pattern = getPattern(this.markerId);
   const noteStrings = await cache.pget(pattern);
@@ -145,10 +179,8 @@ export async function retrieveNote(this: SocketMetadata) {
   });
   const ret: NoteMessageArray = {
     markerId: this.markerId,
-    socketEvent: SocketEvent.REFRESH_NOTE,
+    socketEvent: SocketEvent.RETRIEVE_NOTE,
     notes,
   };
   broadcast(ret);
 }
-
-

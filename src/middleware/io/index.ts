@@ -29,15 +29,22 @@ export type WebRTCMessage = {
 }
 
 export type NoteMessage = {
-    socketEvent     : SocketEvent
+    socketEvent?     : SocketEvent
     markerId        : string
     userId          : string
     noteId          : string
     noteText        : string
     posX            : number
     posY            : number
-    createDt        : string
-    updateDt        : string
+    createDt?        : string
+    updateDt?        : string
+}
+
+export type RefreshNote = {
+    socketEvent     : SocketEvent
+    markerId        : string
+    type: 'create' | 'update' | 'delete'
+    note: NoteMessage
 }
 
 export type NoteMessageArray = {
