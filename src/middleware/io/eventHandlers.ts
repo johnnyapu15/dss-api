@@ -143,11 +143,11 @@ export async function onUpdateNote(msg: NoteMessage) {
     const prevObject = JSON.parse(got) as NoteMessage;
     const updatedObject = { ...prevObject, ...data };
     cache.set(id, JSON.stringify(updatedObject));
-    const { markerId } = data;
+    const { markerId } = updatedObject;
     const refresh = {
       markerId,
       socketEvent: SocketEvent.REFRESH_NOTE,
-      note: data,
+      note: updatedObject,
       type: 'update',
     } as RefreshNote;
     refreshNote(refresh);
