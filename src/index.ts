@@ -4,6 +4,7 @@ import { socket } from './middleware/io';
 import router from './router/index';
 
 const app = express();
+app.use(express.static('public'));
 let port = process.env.PORT ?? 3000;
 if (typeof (port) === 'string') {
   port = parseInt(port, 10);
