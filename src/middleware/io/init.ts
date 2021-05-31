@@ -5,7 +5,7 @@ import httpServer from 'http';
 import {
   WebRTCMessage, SocketEvent, NoteMessage, NoteMessageArray, RefreshNote,
 } from '.';
-import { allocID } from './commonFunctions';
+import { allocID, getMarkerId } from './commonFunctions';
 import {
   onAttach, onCreateNote, onDeleteNote, onDetach,
   onDisconnect, onError, onPreSignal, onPushSignal,
@@ -24,7 +24,7 @@ export function broadcast(msg: WebRTCMessage | NoteMessage | NoteMessageArray | 
   // 이 서버에 연결된 소켓에 해당하는 멤버에게 브로드캐스트
   if (msg.socketEvent) {
     io
-      .of(msg.markerId)
+      .of(getMarkerId(msg))
       .emit(msg.socketEvent, msg);
   }
 }
@@ -44,11 +44,15 @@ export function initWS(server: httpServer.Server) {
     console.log('INIT START');
     const markerIdGot = namespace.name as string;
     const markerId = !markerIdGot ? '/anonymous-room' : markerIdGot;
+    const unslashedMarkerId = markerId.startsWith('/') ? markerId.substring(1) : markerId;
     const userId = (socket.handshake.query.userId as string) ?? socket.id;
 
     const id = await allocID(userId);
 
-    const metadata = { id, markerId } as SocketMetadata;
+    const metadata = {
+      id,
+      markerId: unslashedMarkerId,
+    } as SocketMetadata;
 
     socket
       .on(SocketEvent.ATTACH, onAttach)
@@ -63,13 +67,13 @@ export function initWS(server: httpServer.Server) {
       .on('error', onError.bind(metadata))
       .emit(SocketEvent.INIT, {
         socketEvent: SocketEvent.INIT,
-        markerId,
+        markerId: unslashedMarkerId,
         sender: id,
       } as WebRTCMessage);
 
     localSockets[id] = socket;
 
-    console.log(`init ${id} on ${markerId}`);
+    console.log(`init ${id} on ${unslashedMarkerId}`);
   });
   console.log('socket init');
 }

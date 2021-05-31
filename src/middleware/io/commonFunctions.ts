@@ -1,5 +1,7 @@
 import { v4 } from 'uuid';
-import { NoteMessage, WebRTCMessage } from '.';
+import {
+  NoteMessage, NoteMessageArray, RefreshNote, WebRTCMessage,
+} from '.';
 import { cache } from '../memstore';
 
 export function generateUUID() {
@@ -34,4 +36,9 @@ export function getNoteId(note: NoteMessage) {
 
 export function getPattern(markerId: string) {
   return `POSTIT_${markerId}*`;
+}
+
+export function getMarkerId(msg: WebRTCMessage | NoteMessage | RefreshNote | NoteMessageArray) {
+  const id = msg.markerId;
+  return id.startsWith('/') ? id.substring(1) : id;
 }

@@ -3,7 +3,9 @@ import {
   NoteMessage, NoteMessageArray, RefreshNote, SocketEvent, WebRTCMessage,
 } from '.';
 import { cache } from '../memstore';
-import { getMemberAddr, getNoteId, getPattern } from './commonFunctions';
+import {
+  getMarkerId, getMemberAddr, getNoteId, getPattern,
+} from './commonFunctions';
 import {
   broadcast, localSockets, SocketMetadata, unicast,
 } from './init';
@@ -25,7 +27,7 @@ export async function onAttach(msg: WebRTCMessage) {
   try {
     // join
     // local socket join
-    const { markerId } = msg;
+    const markerId = getMarkerId(msg);
     sender = msg.sender;
 
     // subscribe to the marker
@@ -62,7 +64,8 @@ export async function detach(sender: string, markerId: string) {
 export async function onDetach(msg: WebRTCMessage) {
   try {
     console.log(msg);
-    const { sender, markerId } = msg;
+    const { sender } = msg;
+    const markerId = getMarkerId(msg);
     if (!sender || !markerId) {
       throw new Error(`Invalid parameter ${msg}`);
     }
@@ -121,7 +124,7 @@ export async function onCreateNote(msg: NoteMessage) {
 
   cache.set(id, JSON.stringify(data));
 
-  const { markerId } = data;
+  const markerId = getMarkerId(data);
   const refresh = {
     markerId,
     socketEvent: SocketEvent.REFRESH_NOTE,
@@ -143,7 +146,7 @@ export async function onUpdateNote(msg: NoteMessage) {
     const prevObject = JSON.parse(got) as NoteMessage;
     const updatedObject = { ...prevObject, ...data };
     cache.set(id, JSON.stringify(updatedObject));
-    const { markerId } = updatedObject;
+    const markerId = getMarkerId(updatedObject);
     const refresh = {
       markerId,
       socketEvent: SocketEvent.REFRESH_NOTE,
@@ -161,7 +164,7 @@ export async function onDeleteNote(msg: NoteMessage) {
   const exists = await cache.exists(id);
   if (exists) {
     cache.del(id);
-    const { markerId } = data;
+    const markerId = getMarkerId(data);
     const refresh = {
       markerId,
       socketEvent: SocketEvent.REFRESH_NOTE,
