@@ -11,5 +11,6 @@ module.exports = {
       "no-console":"off",
       "import/no-unresolved": "off",
       "import/extensions": "off",
+      "linebreak-style": "off",
     }
   };
