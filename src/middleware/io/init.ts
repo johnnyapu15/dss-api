@@ -58,7 +58,10 @@ export function initWS(server: httpServer.Server) {
       .on(SocketEvent.CREATE_NOTE, onCreateNote)
       .on(SocketEvent.UPDATE_NOTE, onUpdateNote)
       .on(SocketEvent.DELETE_NOTE, onDeleteNote)
+<<<<<<< HEAD
       .on(SocketEvent.RETRIEVE_NOTE, retrieveNote.bind(metadata))
+=======
+>>>>>>> 37621e71fdd1c7138076e150b770074ceae226b3
       .on('disconnect', onDisconnect.bind(metadata))
       .on('error', onError.bind(metadata))
       .emit(SocketEvent.INIT, {

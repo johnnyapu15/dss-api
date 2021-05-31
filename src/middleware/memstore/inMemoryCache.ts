@@ -19,6 +19,7 @@ export default class InMemoryCache implements CustomCache {
   }
 
   set(key: string, value: string): Promise<unknown> {
+    console.log(`${key}, ${value}`)
     throw new Error('Method not implemented.');
   }
 
