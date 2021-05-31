@@ -117,6 +117,8 @@ export async function refreshNote(msg: RefreshNote) {
 export async function onCreateNote(msg: NoteMessage) {
   const data = msg;
   data.socketEvent = undefined;
+  const markerId = getMarkerId(data);
+  data.markerId = markerId;
   if (!data.createDt) {
     data.createDt = new Date().toISOString();
   }
@@ -124,7 +126,6 @@ export async function onCreateNote(msg: NoteMessage) {
 
   cache.set(id, JSON.stringify(data));
 
-  const markerId = getMarkerId(data);
   const refresh = {
     markerId,
     socketEvent: SocketEvent.REFRESH_NOTE,
@@ -137,6 +138,8 @@ export async function onCreateNote(msg: NoteMessage) {
 export async function onUpdateNote(msg: NoteMessage) {
   const data = msg;
   data.socketEvent = undefined;
+  const markerId = getMarkerId(data);
+  data.markerId = markerId;
   if (!data.updateDt) {
     data.updateDt = new Date().toISOString();
   }
@@ -146,7 +149,6 @@ export async function onUpdateNote(msg: NoteMessage) {
     const prevObject = JSON.parse(got) as NoteMessage;
     const updatedObject = { ...prevObject, ...data };
     cache.set(id, JSON.stringify(updatedObject));
-    const markerId = getMarkerId(updatedObject);
     const refresh = {
       markerId,
       socketEvent: SocketEvent.REFRESH_NOTE,
