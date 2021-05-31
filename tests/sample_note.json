@@ -5,7 +5,5 @@
     "noteId"          : "test-noteId",
     "noteText"        : "test-noteText",
     "posX"            : 0,
-    "posY"            : 1,
-    "createDt"        : "2021-05-20T09:00:00:000Z",
-    "updateDt"        : "2021-05-20T09:00:00:000Z"
+    "posY"            : 1
 }

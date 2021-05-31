@@ -138,9 +138,11 @@ export async function onUpdateNote(msg: NoteMessage) {
     data.updateDt = new Date().toISOString();
   }
   const id = getNoteId(data);
-  const exists = await cache.exists(id);
-  if (exists) {
-    cache.set(id, JSON.stringify(data));
+  const got = await cache.get(id);
+  if (got != null) {
+    const prevObject = JSON.parse(got) as NoteMessage;
+    const updatedObject = { ...prevObject, ...data };
+    cache.set(id, JSON.stringify(updatedObject));
     const { markerId } = data;
     const refresh = {
       markerId,
