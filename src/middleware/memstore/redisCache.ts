@@ -35,7 +35,7 @@ export default class RedisCache implements CustomCache {
 
   pget = async (pattern: string): Promise<string[]> => {
     const keys = await this.keys(pattern);
-    if (keys) {
+    if (keys.length > 0) {
       return this.mget(keys);
     }
 
