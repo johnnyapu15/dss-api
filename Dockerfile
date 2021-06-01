@@ -14,4 +14,4 @@ EXPOSE ${PORT}
 
 RUN npm run build
 
-CMD [ "pm2-runtime", "." ]
+ENTRYPOINT [ "pm2-runtime", ".", "&" ]
