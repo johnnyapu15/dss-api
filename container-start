@@ -1,1 +1,1 @@
-docker run -p 3000:3000 -d ar-socket --env-file .env
+docker run --env-file .env --name ar-socket ar-socket 
