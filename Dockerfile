@@ -12,4 +12,6 @@ COPY . .
 
 EXPOSE ${PORT}
 
-CMD [ "pm2", "start", "." ]
+RUN npm run build
+
+CMD [ "pm2-runtime", "." ]
