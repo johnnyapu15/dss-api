@@ -147,6 +147,10 @@ export async function onUpdateNote(msg: NoteMessage) {
   const got = await cache.get(id);
   if (got != null) {
     const prevObject = JSON.parse(got) as NoteMessage;
+    if (prevObject.userId !== data.userId) {
+      // 생성자가 아니라면 무시
+      return;
+    }
     const updatedObject = { ...prevObject, ...data };
     cache.set(id, JSON.stringify(updatedObject));
     const refresh = {
@@ -163,8 +167,13 @@ export async function onDeleteNote(msg: NoteMessage) {
   const data = msg;
   data.socketEvent = undefined;
   const id = getNoteId(data);
-  const exists = await cache.exists(id);
-  if (exists) {
+  const got = await cache.get(id);
+  if (got != null) {
+    const prevObject = JSON.parse(got) as NoteMessage;
+    if (prevObject.userId !== data.userId) {
+      // 생성자가 아니라면 무시
+      return;
+    }
     cache.del(id);
     const markerId = getMarkerId(data);
     const refresh = {
@@ -186,8 +195,9 @@ export async function retrieveNote(this: SocketMetadata) {
   });
   const ret: NoteMessageArray = {
     markerId: this.markerId,
+    receiver: this.id,
     socketEvent: SocketEvent.RETRIEVE_NOTE,
     notes,
   };
-  broadcast(ret);
+  unicast(ret);
 }

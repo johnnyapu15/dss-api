@@ -50,5 +50,6 @@ export type RefreshNote = {
 export type NoteMessageArray = {
     socketEvent     : SocketEvent
     markerId        : string
+    receiver        : string
     notes           : NoteMessage[]
 }
