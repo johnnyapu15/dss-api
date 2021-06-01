@@ -1,3 +1,8 @@
 docker network create ar-network
 docker network connect ar-network redis
-docker run --env-file .env --name ar-socket --network ar-network -p 3000:3000 ar-socket
+docker run \
+    --env-file .env \
+    --name ar-socket \
+    --network ar-network \
+    -p 3000:3000 \
+    ar-socket
