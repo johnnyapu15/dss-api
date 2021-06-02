@@ -164,6 +164,7 @@ export async function onUpdateNote(msg: NoteMessage) {
 }
 
 export async function onDeleteNote(msg: NoteMessage) {
+  console.log(`${JSON.stringify(msg)}`)
   const data = msg;
   data.socketEvent = undefined;
   const id = getNoteId(data);
