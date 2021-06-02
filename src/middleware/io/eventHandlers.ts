@@ -169,6 +169,7 @@ export async function onDeleteNote(msg: NoteMessage) {
   const id = getNoteId(data);
   const got = await cache.get(id);
   if (got != null) {
+    console.log(`${got}\n${data}`)
     const prevObject = JSON.parse(got) as NoteMessage;
     if (prevObject.userId !== data.userId) {
       // 생성자가 아니라면 무시
