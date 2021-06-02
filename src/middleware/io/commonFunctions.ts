@@ -30,15 +30,15 @@ export async function allocID(id?: string) {
   return id;
 }
 
+export function getMarkerId(msg: WebRTCMessage | NoteMessage | RefreshNote | NoteMessageArray) {
+  const id = msg.markerId;
+  return id.startsWith('/') ? id.substring(1) : id;
+}
+
 export function getNoteId(note: NoteMessage) {
-  return `POSTIT_${note.markerId}_${note.userId}_${note.noteId}`;
+  return `POSTIT_${getMarkerId(note)}_${note.userId}_${note.noteId}`;
 }
 
 export function getPattern(markerId: string) {
   return `POSTIT_${markerId}*`;
-}
-
-export function getMarkerId(msg: WebRTCMessage | NoteMessage | RefreshNote | NoteMessageArray) {
-  const id = msg.markerId;
-  return id.startsWith('/') ? id.substring(1) : id;
 }
