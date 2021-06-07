@@ -1,7 +1,9 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable prefer-rest-params */
-import socketIO, { Socket } from 'socket.io';
+import socketIO from 'socket.io';
+import { createAdapter } from '@socket.io/redis-adapter'
 import httpServer from 'http';
+import RedisCache from '../memstore/redisCache';
 import {
   WebRTCMessage, SocketEvent, NoteMessage, NoteMessageArray, RefreshNote,
 } from '.';
@@ -14,6 +16,11 @@ import {
 
 let io: socketIO.Server;
 
+// redis adapter
+const redis = new RedisCache();
+const pubClient = redis.getClient();
+const subClient = pubClient.duplicate();
+io.adapter(createAdapter(pubClient, subClient));
 export const localSockets: { [socketId: string]: socketIO.Socket } = {};
 export interface SocketMetadata {
   id: string
