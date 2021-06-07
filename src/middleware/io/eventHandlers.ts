@@ -25,8 +25,6 @@ export async function onAttach(msg: WebRTCMessage) {
   let sender;
   console.log(msg);
   try {
-    // join
-    // local socket join
     const markerId = getMarkerId(msg);
     sender = msg.sender;
 
@@ -164,13 +162,11 @@ export async function onUpdateNote(msg: NoteMessage) {
 }
 
 export async function onDeleteNote(msg: NoteMessage) {
-  console.log(`${JSON.stringify(msg)}`)
   const data = msg;
   data.socketEvent = undefined;
   const id = getNoteId(data);
   const got = await cache.get(id);
   if (got != null) {
-    console.log(`${got}\n${JSON.stringify(data)}`)
     const prevObject = JSON.parse(got) as NoteMessage;
     if (prevObject.userId !== data.userId) {
       // 생성자가 아니라면 무시

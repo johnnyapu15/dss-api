@@ -13,8 +13,8 @@ import {
 } from './eventHandlers';
 
 let io: socketIO.Server;
-export const localSockets: { [socketId: string]: socketIO.Socket } = {};
 
+export const localSockets: { [socketId: string]: socketIO.Socket } = {};
 export interface SocketMetadata {
   id: string
   markerId: string
@@ -38,10 +38,15 @@ export function unicast(msg: WebRTCMessage | NoteMessageArray) {
 }
 
 export function initWS(server: httpServer.Server) {
+  /**
+   * 인자로 받은 서버 소켓에 SocketIO를 적용
+   * markerId가 비어있으면 anonymous-room으로 생성
+   */
+
   io = new socketIO.Server(server, { transports: ['websocket'], path: '/' });
   io.of(/^\/\w*/).on('connection', async (socket) => {
     const namespace = socket.nsp;
-    console.log('INIT START');
+    console.log('[INIT] starting ...');
     const markerIdGot = namespace.name as string;
     const markerId = !markerIdGot ? '/anonymous-room' : markerIdGot;
     const unslashedMarkerId = markerId.startsWith('/') ? markerId.substring(1) : markerId;
@@ -55,14 +60,18 @@ export function initWS(server: httpServer.Server) {
     } as SocketMetadata;
 
     socket
+      // marker 출입 이벤트
       .on(SocketEvent.ATTACH, onAttach)
       .on(SocketEvent.DETACH, onDetach)
+      // WebRTC signal 이벤트
       .on(SocketEvent.SIGNAL, onPushSignal)
       .on(SocketEvent.PRESIGNAL, onPreSignal)
+      // Note 이벤트
       .on(SocketEvent.CREATE_NOTE, onCreateNote)
       .on(SocketEvent.UPDATE_NOTE, onUpdateNote)
       .on(SocketEvent.DELETE_NOTE, onDeleteNote)
       .on(SocketEvent.RETRIEVE_NOTE, retrieveNote.bind(metadata))
+      // SocketIO 기본 이벤트
       .on('disconnect', onDisconnect.bind(metadata))
       .on('error', onError.bind(metadata))
       .emit(SocketEvent.INIT, {
@@ -70,10 +79,10 @@ export function initWS(server: httpServer.Server) {
         markerId: unslashedMarkerId,
         sender: id,
       } as WebRTCMessage);
-
+    // 서버 인스턴스에 해당 소켓을 별도로 저장 / 관리
     localSockets[id] = socket;
 
-    console.log(`init ${id} on ${unslashedMarkerId}`);
+    console.log(`init for ID: ${id} in MARKER: ${unslashedMarkerId}`);
   });
-  console.log('socket init');
+  console.log('[INIT] done.');
 }
