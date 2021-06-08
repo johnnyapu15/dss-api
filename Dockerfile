@@ -14,4 +14,4 @@ EXPOSE ${PORT}
 
 RUN npm run build
 
-ENTRYPOINT [ "pm2-runtime", ".", "&" ]
+CMD [ "pm2-runtime", ".", "-i", "max", "&" ]
