@@ -16,12 +16,3 @@ export const cache = (() => {
   console.log('Using in-memory cache...');
   return new InMemoryCache();
 })();
-
-export async function generateIDMW(req: Request, res: Response, next: NextFunction) {
-  try {
-    const id = allocID();
-    res.json({ id });
-  } catch (e) {
-    next(e);
-  }
-}
