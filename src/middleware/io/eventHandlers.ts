@@ -31,6 +31,7 @@ export async function onAttach(this: SocketMetadata, msg: WebRTCMessage) {
     // subscribe to the marker
     
     //const setData = await cache.addIntoSet(sender, markerId);
+    await cache.set(this.id, this.socketId)
     const message = {
       socketEvent: SocketEvent.ATTACH,
       members: [...await this.io.allSockets()],
@@ -69,6 +70,7 @@ export async function onDetach(this: SocketMetadata, msg: WebRTCMessage) {
       throw new Error(`Invalid parameter ${msg}`);
     }
     const sockets = await this.io.allSockets()
+    cache.del(this.id)
     await detach(sockets, sender, markerId);
   } catch (e) {
     if (msg.sender) {

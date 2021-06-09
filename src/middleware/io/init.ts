@@ -13,6 +13,7 @@ import {
   onDisconnect, onError, onPreSignal, onPushSignal,
   onUpdateNote, retrieveNote,
 } from './eventHandlers';
+import { cache } from '../memstore';
 
 let io: socketIO.Server;
 
@@ -21,6 +22,7 @@ export interface SocketMetadata {
   id: string
   markerId: string
   io: socketIO.Server
+  socketId: string
 }
 
 export function broadcast(msg: WebRTCMessage | NoteMessage | NoteMessageArray | RefreshNote) {
@@ -35,12 +37,9 @@ export function broadcast(msg: WebRTCMessage | NoteMessage | NoteMessageArray | 
 export async function unicast(msg: WebRTCMessage | NoteMessageArray) {
   // 이 서버에 연결된 소켓 멤버에 유니캐스트
   const { receiver } = msg;
-  
-  if (receiver && localSockets[receiver]) {
-    const socket = io.sockets.sockets.get(receiver)
-    if (socket) {
-      socket.emit(msg.socketEvent, msg);
-    }
+  const socketId = await cache.get(receiver??'')
+  if (socketId) {
+    io.sockets.sockets.get(socketId)?.emit(msg.socketEvent, msg);
   }
 }
 
@@ -71,6 +70,7 @@ export function initWS(server: httpServer.Server) {
       id,
       markerId: unslashedMarkerId,
       io,
+      socketId:socket.id,
     } as SocketMetadata;
 
     socket
