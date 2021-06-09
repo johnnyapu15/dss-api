@@ -27,7 +27,7 @@ export interface SocketMetadata {
 
 export async function broadcast(metadata: SocketMetadata, msg: WebRTCMessage | NoteMessage | NoteMessageArray | RefreshNote) {
   // 이 서버에 연결된 소켓에 해당하는 멤버에게 브로드캐스트
-  console.log(`broadcast ${JSON.stringify(metadata.namespace.sockets)}`)
+  console.log(`broadcast ${[...await metadata.namespace.allSockets()]}`)
   if (msg.socketEvent) {
     metadata.namespace.adapter
       .emit(msg.socketEvent, msg);
