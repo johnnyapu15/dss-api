@@ -90,8 +90,8 @@ export async function onPushSignal(this: SocketMetadata, msg: WebRTCMessage) {
   try {
     console.log(`signal = ${msg}`);
     if (msg.sender && msg.receiver) {
-      const sendTo = getMemberAddr(msg);
-      await cache.pushIntoArray(sendTo, msg.data);
+      //const sendTo = getMemberAddr(msg);
+      //await cache.pushIntoArray(sendTo, msg.data);
       const returnMsg = msg;
       returnMsg.socketEvent = SocketEvent.SIGNAL;
       unicast(this, returnMsg);
