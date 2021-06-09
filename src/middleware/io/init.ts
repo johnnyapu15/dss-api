@@ -78,12 +78,12 @@ export function initWS(server: httpServer.Server) {
       .on(SocketEvent.ATTACH, onAttach.bind(metadata))
       .on(SocketEvent.DETACH, onDetach.bind(metadata))
       // WebRTC signal 이벤트
-      .on(SocketEvent.SIGNAL, onPushSignal)
-      .on(SocketEvent.PRESIGNAL, onPreSignal)
+      .on(SocketEvent.SIGNAL, onPushSignal.bind(metadata))
+      .on(SocketEvent.PRESIGNAL, onPreSignal.bind(metadata))
       // Note 이벤트
-      .on(SocketEvent.CREATE_NOTE, onCreateNote)
-      .on(SocketEvent.UPDATE_NOTE, onUpdateNote)
-      .on(SocketEvent.DELETE_NOTE, onDeleteNote)
+      .on(SocketEvent.CREATE_NOTE, onCreateNote.bind(metadata))
+      .on(SocketEvent.UPDATE_NOTE, onUpdateNote.bind(metadata))
+      .on(SocketEvent.DELETE_NOTE, onDeleteNote.bind(metadata))
       .on(SocketEvent.RETRIEVE_NOTE, retrieveNote.bind(metadata))
       // SocketIO 기본 이벤트
       .on('disconnect', onDisconnect.bind(metadata))
