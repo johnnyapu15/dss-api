@@ -28,7 +28,9 @@ export interface SocketMetadata {
 
 async function fetchSocket(namespace: socketIO.Namespace) {
   const sockets = await namespace.fetchSockets()
-  sockets.forEach(v => {localSockets[v.id] = v})
+  sockets.forEach(v => {
+    console.log(v)
+    localSockets[v.id] = v})
 }
 
 export async function broadcast(metadata: SocketMetadata, msg: WebRTCMessage | NoteMessage | NoteMessageArray | RefreshNote) {
@@ -108,8 +110,7 @@ export function initWS(server: httpServer.Server) {
         markerId: unslashedMarkerId,
         sender: id,
       } as WebRTCMessage);
-    // 서버 인스턴스에 해당 소켓을 별도로 저장 / 관리
-    localSockets[id] = socket;
+    
     console.log(`1 ${JSON.stringify(namespace.sockets)} ${[...await namespace.allSockets()]}`);
     namespace.socketsJoin('all')
     console.log(`2 ${JSON.stringify(namespace.sockets)} ${[...await namespace.allSockets()]}`);
