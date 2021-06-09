@@ -46,7 +46,7 @@ export async function unicast(metadata: SocketMetadata, msg: WebRTCMessage | Not
   // 이 서버에 연결된 소켓 멤버에 유니캐스트
   const { receiver } = msg;
   const socketId = await cache.get(receiver ?? '')
-  console.log(`[${msg.socketEvent}] unicast ${[...await metadata.namespace.allSockets()]}`)
+  console.log(`[${msg.socketEvent}] unicast ${socketId}`)
   if (socketId) {
     await fetchSocket(metadata.namespace)
     
