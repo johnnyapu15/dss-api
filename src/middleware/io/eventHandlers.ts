@@ -33,7 +33,7 @@ export async function onAttach(this: SocketMetadata, msg: WebRTCMessage) {
     //const setData = await cache.addIntoSet(sender, markerId);
     const message = {
       socketEvent: SocketEvent.ATTACH,
-      members: [...await this.sockets()],
+      members: [...await this.io.allSockets()],
       markerId,
       sender,
     } as WebRTCMessage;
@@ -68,7 +68,7 @@ export async function onDetach(this: SocketMetadata, msg: WebRTCMessage) {
     if (!sender || !markerId) {
       throw new Error(`Invalid parameter ${msg}`);
     }
-    const sockets = await this.sockets()
+    const sockets = await this.io.allSockets()
     await detach(sockets, sender, markerId);
   } catch (e) {
     if (msg.sender) {
@@ -78,7 +78,7 @@ export async function onDetach(this: SocketMetadata, msg: WebRTCMessage) {
 }
 
 export async function onDisconnect(this: SocketMetadata, reason: string) {
-  const sockets = await this.sockets()
+  const sockets = await this.io.allSockets()
   detach(sockets, this.id, this.markerId);
   console.log(`disconnected with ${reason}`);
 }
