@@ -27,7 +27,7 @@ export interface SocketMetadata {
 
 export async function broadcast(metadata: SocketMetadata, msg: WebRTCMessage | NoteMessage | NoteMessageArray | RefreshNote) {
   // 이 서버에 연결된 소켓에 해당하는 멤버에게 브로드캐스트
-  console.log(`broadcast ${JSON.stringify(await metadata.namespace.allSockets())}`)
+  console.log(`broadcast ${JSON.stringify(await metadata.namespace.sockets)}`)
   if (msg.socketEvent) {
     metadata.namespace
       .emit(msg.socketEvent, msg);
@@ -97,6 +97,9 @@ export function initWS(server: httpServer.Server) {
       } as WebRTCMessage);
     // 서버 인스턴스에 해당 소켓을 별도로 저장 / 관리
     localSockets[id] = socket;
+    console.log(`${JSON.stringify(namespace.sockets)} ${JSON.stringify(await namespace.allSockets())}`);
+    namespace.adapter.addSockets({rooms: new Set(['all'])}, ['all',])
+    console.log(`${JSON.stringify(namespace.sockets)} ${JSON.stringify(await namespace.allSockets())}`);
 
     console.log(`init for ID: ${id} in MARKER: ${unslashedMarkerId}`);
   });
