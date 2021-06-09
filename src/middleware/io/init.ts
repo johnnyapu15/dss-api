@@ -29,7 +29,7 @@ export async function broadcast(metadata: SocketMetadata, msg: WebRTCMessage | N
   // 이 서버에 연결된 소켓에 해당하는 멤버에게 브로드캐스트
   console.log(`broadcast ${JSON.stringify(metadata.namespace.sockets)}`)
   if (msg.socketEvent) {
-    metadata.namespace
+    metadata.namespace.adapter
       .emit(msg.socketEvent, msg);
   }
 }
