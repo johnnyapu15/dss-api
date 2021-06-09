@@ -27,7 +27,7 @@ export interface SocketMetadata {
 
 export async function broadcast(metadata: SocketMetadata, msg: WebRTCMessage | NoteMessage | NoteMessageArray | RefreshNote) {
   // 이 서버에 연결된 소켓에 해당하는 멤버에게 브로드캐스트
-  console.log(`broadcast ${await metadata.namespace.allSockets()}`)
+  console.log(`broadcast ${JSON.stringify(await metadata.namespace.allSockets())}`)
   if (msg.socketEvent) {
     metadata.namespace
       .emit(msg.socketEvent, msg);
@@ -38,7 +38,7 @@ export async function unicast(metadata: SocketMetadata, msg: WebRTCMessage | Not
   // 이 서버에 연결된 소켓 멤버에 유니캐스트
   const { receiver } = msg;
   const socketId = await cache.get(receiver ?? '')
-  console.log(`unicast ${await metadata.namespace.allSockets()}`)
+  console.log(`unicast ${JSON.stringify(await metadata.namespace.allSockets())}`)
   if (socketId) {
     metadata.namespace.sockets.get(socketId)?.emit(msg.socketEvent, msg);
     console.log(`[${msg.socketEvent}] ${receiver} => ${socketId}`)
