@@ -40,8 +40,13 @@ export async function unicast(metadata: SocketMetadata, msg: WebRTCMessage | Not
   const socketId = await cache.get(receiver ?? '')
   console.log(`[${msg.socketEvent}] unicast ${[...await metadata.namespace.allSockets()]}`)
   if (socketId) {
-    metadata.namespace.sockets.get(socketId)?.emit(msg.socketEvent, msg);
-    console.log(`[${msg.socketEvent}] ${receiver} => ${socketId}`)
+    const socket = metadata.namespace.sockets.get(socketId)
+    if (socket) {
+      socket.emit(msg.socketEvent, msg);
+      console.log(`[${msg.socketEvent}] ${receiver} => ${socketId}`)
+    } else {
+      console.log("NO SOCKET")
+    }
   }
 }
 

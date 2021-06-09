@@ -50,7 +50,7 @@ export async function onAttach(this: SocketMetadata, msg: WebRTCMessage) {
 
 export async function detach(metadata: SocketMetadata, sender: string, markerId: string) {
   // const sockets = await metadata.namespace.allSockets()
-  // await cache.deleteKey(sender);
+  await cache.deleteKey(sender);
   cache.del(sender)
   const setData = await cache.deleteFromSet(sender, markerId);
   const message = {
