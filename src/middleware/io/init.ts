@@ -14,15 +14,21 @@ import {
   onUpdateNote, retrieveNote,
 } from './eventHandlers';
 import { cache } from '../memstore';
+import { DefaultEventsMap } from 'socket.io/dist/typed-events';
 
 let io: socketIO.Server;
 
-export const localSockets: { [socketId: string]: socketIO.Socket } = {};
+export const localSockets: { [socketId: string]: socketIO.RemoteSocket<DefaultEventsMap> } = {};
 export interface SocketMetadata {
   id: string
   markerId: string
   namespace: socketIO.Namespace
   socketId: string
+}
+
+async function fetchSocket(namespace: socketIO.Namespace) {
+  const sockets = await namespace.fetchSockets()
+  sockets.forEach(v => {localSockets[v.id] = v})
 }
 
 export async function broadcast(metadata: SocketMetadata, msg: WebRTCMessage | NoteMessage | NoteMessageArray | RefreshNote) {
@@ -40,9 +46,9 @@ export async function unicast(metadata: SocketMetadata, msg: WebRTCMessage | Not
   const socketId = await cache.get(receiver ?? '')
   console.log(`[${msg.socketEvent}] unicast ${[...await metadata.namespace.allSockets()]}`)
   if (socketId) {
-    const sockets = await metadata.namespace.fetchSockets()
-    console.log(`SOCKETS: ${sockets}`)
-    const socket = metadata.namespace.sockets.get(socketId)
+    fetchSocket(metadata.namespace)
+    
+    const socket = localSockets[socketId]
     if (socket) {
       socket.emit(msg.socketEvent, msg);
       console.log(`[${msg.socketEvent}] ${receiver} => ${socketId}`)
