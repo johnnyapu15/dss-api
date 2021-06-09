@@ -21,12 +21,14 @@ export function getMemberAddr(msg: WebRTCMessage) {
  * @param id if null, use random uuid.
  * @returns created id
  */
-export async function allocID(id?: string) {
+export async function allocID(markerId: string, id?: string) {
   // eslint-disable-next-line no-param-reassign
   if (!id) { id = generateUUID(); }
 
   // create empty signal placeholder (array)
-  await cache.pushIntoArray(id);
+  //await cache.pushIntoArray(id);
+  // add into marker-room (set)
+  //await cache.addIntoSet(id, markerId);
   return id;
 }
 
