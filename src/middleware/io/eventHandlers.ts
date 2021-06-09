@@ -30,12 +30,12 @@ export async function onAttach(this: SocketMetadata, msg: WebRTCMessage) {
 
     // subscribe to the marker
     
-    //const setData = await cache.addIntoSet(sender, markerId);
+    const setData = await cache.addIntoSet(sender, markerId);
     await cache.set(this.id, this.socketId)
     console.log(`${this.id} => ${this.socketId}`)
     const message = {
       socketEvent: SocketEvent.ATTACH,
-      members: [...await this.namespace.allSockets()],
+      members: [...setData],
       markerId,
       sender,
     } as WebRTCMessage;
@@ -49,13 +49,13 @@ export async function onAttach(this: SocketMetadata, msg: WebRTCMessage) {
 }
 
 export async function detach(metadata: SocketMetadata, sender: string, markerId: string) {
-  const sockets = await metadata.namespace.allSockets()
-  await cache.deleteKey(sender);
+  // const sockets = await metadata.namespace.allSockets()
+  // await cache.deleteKey(sender);
   cache.del(sender)
-  //const setData = await cache.deleteFromSet(sender, markerId);
+  const setData = await cache.deleteFromSet(sender, markerId);
   const message = {
     socketEvent: SocketEvent.DETACH,
-    members: [...sockets],
+    members: [...setData],
     markerId,
     sender,
   } as WebRTCMessage;
