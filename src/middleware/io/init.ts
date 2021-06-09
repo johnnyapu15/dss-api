@@ -32,11 +32,15 @@ export function broadcast(msg: WebRTCMessage | NoteMessage | NoteMessageArray | 
   }
 }
 
-export function unicast(msg: WebRTCMessage | NoteMessageArray) {
+export async function unicast(msg: WebRTCMessage | NoteMessageArray) {
   // 이 서버에 연결된 소켓 멤버에 유니캐스트
   const { receiver } = msg;
+  
   if (receiver && localSockets[receiver]) {
-    localSockets[receiver].emit(msg.socketEvent, msg);
+    const socket = io.sockets.sockets.get(receiver)
+    if (socket) {
+      socket.emit(msg.socketEvent, msg);
+    }
   }
 }
 
