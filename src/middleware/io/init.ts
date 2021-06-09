@@ -16,17 +16,12 @@ import {
 
 let io: socketIO.Server;
 
-// redis adapter
-const redis = new RedisCache();
-const pubClient = redis.getClient();
-const subClient = pubClient.duplicate();
-io.adapter(createAdapter(pubClient, subClient));
 export const localSockets: { [socketId: string]: socketIO.Socket } = {};
-export interface SocketMetadata {
-  id: string
-  markerId: string
-  sockets: () => Promise<Set<string>>
-}
+  export interface SocketMetadata {
+    id: string
+    markerId: string
+    sockets: () => Promise<Set<string>>
+  }
 
 export function broadcast(msg: WebRTCMessage | NoteMessage | NoteMessageArray | RefreshNote) {
   // 이 서버에 연결된 소켓에 해당하는 멤버에게 브로드캐스트
@@ -52,6 +47,12 @@ export function initWS(server: httpServer.Server) {
    */
 
   io = new socketIO.Server(server, { transports: ['websocket'], path: '/' });
+  // redis adapter
+  const redis = new RedisCache();
+  const pubClient = redis.getClient();
+  const subClient = pubClient.duplicate();
+  io.adapter(createAdapter(pubClient, subClient));
+  
   io.of(/^\/\w*/).on('connection', async (socket) => {
     const namespace = socket.nsp;
     console.log('[INIT] starting ...');
