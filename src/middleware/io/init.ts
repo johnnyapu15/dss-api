@@ -25,6 +25,7 @@ export const localSockets: { [socketId: string]: socketIO.Socket } = {};
 export interface SocketMetadata {
   id: string
   markerId: string
+  sockets: () => Promise<Set<string>>
 }
 
 export function broadcast(msg: WebRTCMessage | NoteMessage | NoteMessageArray | RefreshNote) {
@@ -64,12 +65,13 @@ export function initWS(server: httpServer.Server) {
     const metadata = {
       id,
       markerId: unslashedMarkerId,
+      sockets: io.allSockets
     } as SocketMetadata;
 
     socket
       // marker 출입 이벤트
-      .on(SocketEvent.ATTACH, onAttach)
-      .on(SocketEvent.DETACH, onDetach)
+      .on(SocketEvent.ATTACH, onAttach.bind(metadata))
+      .on(SocketEvent.DETACH, onDetach.bind(metadata))
       // WebRTC signal 이벤트
       .on(SocketEvent.SIGNAL, onPushSignal)
       .on(SocketEvent.PRESIGNAL, onPreSignal)

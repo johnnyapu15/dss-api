@@ -21,7 +21,7 @@ export function onError(this: SocketMetadata, e: Error) {
   sendError(this.id, e);
 }
 
-export async function onAttach(msg: WebRTCMessage) {
+export async function onAttach(this: SocketMetadata, msg: WebRTCMessage) {
   let sender;
   console.log(msg);
   try {
@@ -29,10 +29,11 @@ export async function onAttach(msg: WebRTCMessage) {
     sender = msg.sender;
 
     // subscribe to the marker
-    const setData = await cache.addIntoSet(sender, markerId);
+    
+    //const setData = await cache.addIntoSet(sender, markerId);
     const message = {
       socketEvent: SocketEvent.ATTACH,
-      members: [...setData],
+      members: [...await this.sockets()],
       markerId,
       sender,
     } as WebRTCMessage;
@@ -45,12 +46,12 @@ export async function onAttach(msg: WebRTCMessage) {
   }
 }
 
-export async function detach(sender: string, markerId: string) {
+export async function detach(sockets: Set<string>, sender: string, markerId: string) {
   await cache.deleteKey(sender);
-  const setData = await cache.deleteFromSet(sender, markerId);
+  //const setData = await cache.deleteFromSet(sender, markerId);
   const message = {
     socketEvent: SocketEvent.DETACH,
-    members: [...setData],
+    members: [...sockets],
     markerId,
     sender,
   } as WebRTCMessage;
@@ -59,7 +60,7 @@ export async function detach(sender: string, markerId: string) {
   console.log(`closed ${sender} on ${markerId}`);
 }
 
-export async function onDetach(msg: WebRTCMessage) {
+export async function onDetach(this: SocketMetadata, msg: WebRTCMessage) {
   try {
     console.log(msg);
     const { sender } = msg;
@@ -67,8 +68,8 @@ export async function onDetach(msg: WebRTCMessage) {
     if (!sender || !markerId) {
       throw new Error(`Invalid parameter ${msg}`);
     }
-
-    await detach(sender, markerId);
+    const sockets = await this.sockets()
+    await detach(sockets, sender, markerId);
   } catch (e) {
     if (msg.sender) {
       sendError(msg.sender, e);
@@ -77,7 +78,8 @@ export async function onDetach(msg: WebRTCMessage) {
 }
 
 export async function onDisconnect(this: SocketMetadata, reason: string) {
-  detach(this.id, this.markerId);
+  const sockets = await this.sockets()
+  detach(sockets, this.id, this.markerId);
   console.log(`disconnected with ${reason}`);
 }
 
