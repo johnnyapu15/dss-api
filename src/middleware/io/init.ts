@@ -29,7 +29,7 @@ export interface SocketMetadata {
 async function fetchSocket(namespace: socketIO.Namespace) {
   const sockets = await namespace.fetchSockets()
   sockets.forEach(v => {
-    console.log(v)
+    console.log(v.id)
     localSockets[v.id] = v})
 }
 
