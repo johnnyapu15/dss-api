@@ -32,6 +32,7 @@ export async function onAttach(this: SocketMetadata, msg: WebRTCMessage) {
     
     //const setData = await cache.addIntoSet(sender, markerId);
     await cache.set(this.id, this.socketId)
+    console.log(`${this.id} => ${this.socketId}`)
     const message = {
       socketEvent: SocketEvent.ATTACH,
       members: [...await this.io.allSockets()],
@@ -49,6 +50,7 @@ export async function onAttach(this: SocketMetadata, msg: WebRTCMessage) {
 
 export async function detach(sockets: Set<string>, sender: string, markerId: string) {
   await cache.deleteKey(sender);
+  cache.del(sender)
   //const setData = await cache.deleteFromSet(sender, markerId);
   const message = {
     socketEvent: SocketEvent.DETACH,
@@ -70,7 +72,7 @@ export async function onDetach(this: SocketMetadata, msg: WebRTCMessage) {
       throw new Error(`Invalid parameter ${msg}`);
     }
     const sockets = await this.io.allSockets()
-    cache.del(this.id)
+    
     await detach(sockets, sender, markerId);
   } catch (e) {
     if (msg.sender) {

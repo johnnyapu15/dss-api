@@ -38,6 +38,7 @@ export async function unicast(msg: WebRTCMessage | NoteMessageArray) {
   // 이 서버에 연결된 소켓 멤버에 유니캐스트
   const { receiver } = msg;
   const socketId = await cache.get(receiver??'')
+  console.log(`${receiver} => ${socketId}`)
   if (socketId) {
     io.sockets.sockets.get(socketId)?.emit(msg.socketEvent, msg);
   }
