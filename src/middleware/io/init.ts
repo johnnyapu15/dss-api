@@ -46,7 +46,7 @@ export async function unicast(metadata: SocketMetadata, msg: WebRTCMessage | Not
   const socketId = await cache.get(receiver ?? '')
   console.log(`[${msg.socketEvent}] unicast ${[...await metadata.namespace.allSockets()]}`)
   if (socketId) {
-    fetchSocket(metadata.namespace)
+    await fetchSocket(metadata.namespace)
     
     const socket = localSockets[socketId]
     if (socket) {
