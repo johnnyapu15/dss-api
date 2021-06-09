@@ -35,12 +35,12 @@ export async function onAttach(this: SocketMetadata, msg: WebRTCMessage) {
     console.log(`${this.id} => ${this.socketId}`)
     const message = {
       socketEvent: SocketEvent.ATTACH,
-      members: [...await this.io.allSockets()],
+      members: [...await this.namespace.allSockets()],
       markerId,
       sender,
     } as WebRTCMessage;
 
-    broadcast(message);
+    broadcast(this, message);
   } catch (e) {
     if (sender) {
       sendError(sender, e);
@@ -48,7 +48,8 @@ export async function onAttach(this: SocketMetadata, msg: WebRTCMessage) {
   }
 }
 
-export async function detach(sockets: Set<string>, sender: string, markerId: string) {
+export async function detach(metadata: SocketMetadata, sender: string, markerId: string) {
+  const sockets = await metadata.namespace.allSockets()
   await cache.deleteKey(sender);
   cache.del(sender)
   //const setData = await cache.deleteFromSet(sender, markerId);
@@ -59,7 +60,7 @@ export async function detach(sockets: Set<string>, sender: string, markerId: str
     sender,
   } as WebRTCMessage;
 
-  broadcast(message);
+  broadcast(metadata, message);
   console.log(`closed ${sender} on ${markerId}`);
 }
 
@@ -71,9 +72,8 @@ export async function onDetach(this: SocketMetadata, msg: WebRTCMessage) {
     if (!sender || !markerId) {
       throw new Error(`Invalid parameter ${msg}`);
     }
-    const sockets = await this.io.allSockets()
     
-    await detach(sockets, sender, markerId);
+    await detach(this, sender, markerId);
   } catch (e) {
     if (msg.sender) {
       sendError(msg.sender, e);
@@ -82,12 +82,11 @@ export async function onDetach(this: SocketMetadata, msg: WebRTCMessage) {
 }
 
 export async function onDisconnect(this: SocketMetadata, reason: string) {
-  const sockets = await this.io.allSockets()
-  detach(sockets, this.id, this.markerId);
+  detach(this, this.id, this.markerId);
   console.log(`disconnected with ${reason}`);
 }
 
-export async function onPushSignal(msg: WebRTCMessage) {
+export async function onPushSignal(this: SocketMetadata, msg: WebRTCMessage) {
   try {
     console.log(`signal = ${msg}`);
     if (msg.sender && msg.receiver) {
@@ -95,7 +94,7 @@ export async function onPushSignal(msg: WebRTCMessage) {
       await cache.pushIntoArray(sendTo, msg.data);
       const returnMsg = msg;
       returnMsg.socketEvent = SocketEvent.SIGNAL;
-      unicast(returnMsg);
+      unicast(this, returnMsg);
     } else {
       console.log('invalid msg?');
     }
@@ -104,21 +103,21 @@ export async function onPushSignal(msg: WebRTCMessage) {
   }
 }
 
-export async function onPreSignal(msg: WebRTCMessage) {
+export async function onPreSignal(this: SocketMetadata, msg: WebRTCMessage) {
   try {
     console.log('presignaling');
-    unicast(msg);
+    unicast(this, msg);
   } catch (e) {
     console.log(e);
   }
 }
 
 /** Note 단위로 수정/삭제/생성 -> 추후, redis의 hash를 이용해 필드 단위로 접근하도록 변경할 수 있음. */
-export async function refreshNote(msg: RefreshNote) {
-  broadcast(msg);
+export async function refreshNote(metadata: SocketMetadata, msg: RefreshNote) {
+  broadcast(metadata, msg);
 }
 
-export async function onCreateNote(msg: NoteMessage) {
+export async function onCreateNote(this: SocketMetadata, msg: NoteMessage) {
   const data = msg;
   data.socketEvent = undefined;
   const markerId = getMarkerId(data);
@@ -136,10 +135,10 @@ export async function onCreateNote(msg: NoteMessage) {
     note: data,
     type: 'create',
   } as RefreshNote;
-  refreshNote(refresh);
+  refreshNote(this, refresh);
 }
 
-export async function onUpdateNote(msg: NoteMessage) {
+export async function onUpdateNote(this: SocketMetadata, msg: NoteMessage) {
   const data = msg;
   data.socketEvent = undefined;
   const markerId = getMarkerId(data);
@@ -163,11 +162,11 @@ export async function onUpdateNote(msg: NoteMessage) {
       note: updatedObject,
       type: 'update',
     } as RefreshNote;
-    refreshNote(refresh);
+    refreshNote(this, refresh);
   }
 }
 
-export async function onDeleteNote(msg: NoteMessage) {
+export async function onDeleteNote(this: SocketMetadata, msg: NoteMessage) {
   const data = msg;
   data.socketEvent = undefined;
   const id = getNoteId(data);
@@ -186,7 +185,7 @@ export async function onDeleteNote(msg: NoteMessage) {
       note: data,
       type: 'delete',
     } as RefreshNote;
-    refreshNote(refresh);
+    refreshNote(this, refresh);
   }
 }
 
@@ -203,5 +202,5 @@ export async function retrieveNote(this: SocketMetadata) {
     socketEvent: SocketEvent.RETRIEVE_NOTE,
     notes,
   };
-  unicast(ret);
+  unicast(this, ret);
 }

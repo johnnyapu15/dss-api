@@ -21,26 +21,25 @@ export const localSockets: { [socketId: string]: socketIO.Socket } = {};
 export interface SocketMetadata {
   id: string
   markerId: string
-  io: socketIO.Server
+  namespace: socketIO.Namespace
   socketId: string
 }
 
-export function broadcast(msg: WebRTCMessage | NoteMessage | NoteMessageArray | RefreshNote) {
+export function broadcast(metadata: SocketMetadata, msg: WebRTCMessage | NoteMessage | NoteMessageArray | RefreshNote) {
   // 이 서버에 연결된 소켓에 해당하는 멤버에게 브로드캐스트
   if (msg.socketEvent) {
-    io
-      .of(getMarkerId(msg))
+    metadata.namespace
       .emit(msg.socketEvent, msg);
   }
 }
 
-export async function unicast(msg: WebRTCMessage | NoteMessageArray) {
+export async function unicast(metadata: SocketMetadata, msg: WebRTCMessage | NoteMessageArray) {
   // 이 서버에 연결된 소켓 멤버에 유니캐스트
   const { receiver } = msg;
-  const socketId = await cache.get(receiver??'')
-  console.log(`${receiver} => ${socketId}`)
+  const socketId = await cache.get(receiver ?? '')
   if (socketId) {
-    io.sockets.sockets.get(socketId)?.emit(msg.socketEvent, msg);
+    metadata.namespace.sockets.get(socketId)?.emit(msg.socketEvent, msg);
+    console.log(`[${msg.socketEvent}] ${receiver} => ${socketId}`)
   }
 }
 
@@ -56,7 +55,7 @@ export function initWS(server: httpServer.Server) {
   const pubClient = redis.getClient();
   const subClient = pubClient.duplicate();
   io.adapter(createAdapter(pubClient, subClient));
-  
+
   io.of(/^\/\w*/).on('connection', async (socket) => {
     const namespace = socket.nsp;
     console.log('[INIT] starting ...');
@@ -70,8 +69,8 @@ export function initWS(server: httpServer.Server) {
     const metadata = {
       id,
       markerId: unslashedMarkerId,
-      io,
-      socketId:socket.id,
+      namespace,
+      socketId: socket.id,
     } as SocketMetadata;
 
     socket
