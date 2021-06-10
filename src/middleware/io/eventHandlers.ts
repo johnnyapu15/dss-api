@@ -87,7 +87,7 @@ export async function onDisconnect(this: SocketMetadata, reason: string) {
 
 export async function onPushSignal(this: SocketMetadata, msg: WebRTCMessage) {
   try {
-    console.log(`[SIGNAL] signal = ${msg}`);
+    console.log(`[SIGNAL] signal = ${JSON.stringify(msg)}`);
     if (msg.sender && msg.receiver) {
       const returnMsg = msg;
       returnMsg.socketEvent = SocketEvent.SIGNAL;
@@ -102,7 +102,7 @@ export async function onPushSignal(this: SocketMetadata, msg: WebRTCMessage) {
 
 export async function onPreSignal(this: SocketMetadata, msg: WebRTCMessage) {
   try {
-    console.log(`[PRESIGNAL] presignal ${msg}`);
+    console.log(`[PRESIGNAL] presignal ${JSON.stringify(msg)}`);
     unicast(this, msg);
   } catch (e) {
     console.log(e);

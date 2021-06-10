@@ -54,22 +54,25 @@ export async function unicast(metadata: SocketMetadata, msg: WebRTCMessage | Not
     const nsp = metadata.namespace
     const roomId = generateRoomId(metadata.socketId, receiverSocketId)
     const thisSocket = nsp.sockets.get(metadata.socketId)
-
-    if (thisSocket) {
-      if (receiverSocketId === metadata.socketId) {
-        thisSocket.emit(msg.socketEvent, msg)
-      } else {
-        const rooms = thisSocket.rooms
-        if (!rooms?.has(roomId)) {
-          await thisSocket.join(roomId)
-          const adapter = nsp.adapter as RedisAdapter
-          await adapter.remoteJoin(receiverSocketId, roomId)
+    try {
+      if (thisSocket) {
+        if (receiverSocketId === metadata.socketId) {
+          thisSocket.emit(msg.socketEvent, msg)
+        } else {
+          const rooms = thisSocket.rooms
+          if (!rooms?.has(roomId)) {
+            await thisSocket.join(roomId)
+            const adapter = nsp.adapter as RedisAdapter
+            await adapter.remoteJoin(receiverSocketId, roomId)
+          }
+          thisSocket.to(roomId).emit(msg.socketEvent, msg);
         }
-        thisSocket.to(roomId).emit(msg.socketEvent, msg);
+        console.log(`[${msg.socketEvent}] unicast ${metadata.socketId} to ${receiver}(${receiverSocketId}), msg: ${JSON.stringify(msg)}`)
+      } else {
+        console.log("NO SOCKET")
       }
-      console.log(`[${msg.socketEvent}] unicast ${metadata.socketId} to ${receiver}(${receiverSocketId}), msg: ${JSON.stringify(msg)}`)
-    } else {
-      console.log("NO SOCKET")
+    } catch (e) {
+      console.log(e)
     }
     /*
     if (!localSockets[receiverSocketId]) {
