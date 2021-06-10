@@ -7,7 +7,7 @@ import RedisCache from '../memstore/redisCache';
 import {
   WebRTCMessage, SocketEvent, NoteMessage, NoteMessageArray, RefreshNote,
 } from '.';
-import { allocID, generateRoomId } from './commonFunctions';
+import { allocID, generateRoomId as generateUnicastRoomId } from './commonFunctions';
 import {
   onAttach, onCreateNote, onDeleteNote, onDetach,
   onDisconnect, onError, onPreSignal, onPushSignal,
@@ -52,7 +52,7 @@ export async function unicast(metadata: SocketMetadata, msg: WebRTCMessage | Not
 
 
     const nsp = metadata.namespace
-    const roomId = generateRoomId(metadata.socketId, receiverSocketId)
+    const roomId = generateUnicastRoomId(metadata.socketId, receiverSocketId)
     const thisSocket = nsp.sockets.get(metadata.socketId)
     try {
       if (thisSocket) {
