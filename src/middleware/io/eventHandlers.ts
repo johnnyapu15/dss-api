@@ -4,7 +4,7 @@ import {
 } from '.';
 import { cache } from '../memstore';
 import {
-  getMarkerId, getMemberAddr, getNoteId, getPattern,
+  getMarkerId, getNoteId, getPattern,
 } from './commonFunctions';
 import {
   broadcast, localSockets, SocketMetadata, unicast,
@@ -23,16 +23,15 @@ export function onError(this: SocketMetadata, e: Error) {
 
 export async function onAttach(this: SocketMetadata, msg: WebRTCMessage) {
   let sender;
-  console.log(msg);
+  console.log(`[ON ATTACH] sender: ${msg.sender} => marker: ${msg.markerId}`);
   try {
     const markerId = getMarkerId(msg);
     sender = msg.sender;
 
     // subscribe to the marker
-    
     const setData = await cache.addIntoSet(sender, markerId);
+    // redis에 유저의 id를 socketId로 기록
     await cache.set(this.id, this.socketId)
-    console.log(`${this.id} => ${this.socketId}`)
     const message = {
       socketEvent: SocketEvent.ATTACH,
       members: [...setData],
@@ -61,12 +60,12 @@ export async function detach(metadata: SocketMetadata, sender: string, markerId:
   } as WebRTCMessage;
 
   broadcast(metadata, message);
-  console.log(`closed ${sender} on ${markerId}`);
+  console.log(`[DETACH] detached ${sender} from ${markerId}`);
 }
 
 export async function onDetach(this: SocketMetadata, msg: WebRTCMessage) {
   try {
-    console.log(msg);
+    console.log(`[ON DETACH] ${msg.sender} from ${msg.markerId}`);
     const { sender } = msg;
     const markerId = getMarkerId(msg);
     if (!sender || !markerId) {
@@ -83,15 +82,13 @@ export async function onDetach(this: SocketMetadata, msg: WebRTCMessage) {
 
 export async function onDisconnect(this: SocketMetadata, reason: string) {
   detach(this, this.id, this.markerId);
-  console.log(`disconnected with ${reason}`);
+  console.log(`[ON DISCONNECT] disconnected with reason: ${reason}`);
 }
 
 export async function onPushSignal(this: SocketMetadata, msg: WebRTCMessage) {
   try {
-    console.log(`signal = ${msg}`);
+    console.log(`[SIGNAL] signal = ${msg}`);
     if (msg.sender && msg.receiver) {
-      //const sendTo = getMemberAddr(msg);
-      //await cache.pushIntoArray(sendTo, msg.data);
       const returnMsg = msg;
       returnMsg.socketEvent = SocketEvent.SIGNAL;
       unicast(this, returnMsg);
@@ -105,7 +102,7 @@ export async function onPushSignal(this: SocketMetadata, msg: WebRTCMessage) {
 
 export async function onPreSignal(this: SocketMetadata, msg: WebRTCMessage) {
   try {
-    console.log('presignaling');
+    console.log(`[PRESIGNAL] presignal ${msg}`);
     unicast(this, msg);
   } catch (e) {
     console.log(e);

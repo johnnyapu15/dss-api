@@ -7,7 +7,7 @@ import RedisCache from '../memstore/redisCache';
 import {
   WebRTCMessage, SocketEvent, NoteMessage, NoteMessageArray, RefreshNote,
 } from '.';
-import { allocID, getMarkerId } from './commonFunctions';
+import { allocID } from './commonFunctions';
 import {
   onAttach, onCreateNote, onDeleteNote, onDetach,
   onDisconnect, onError, onPreSignal, onPushSignal,
@@ -26,7 +26,8 @@ export interface SocketMetadata {
   socketId: string
 }
 
-async function fetchSocket(namespace: socketIO.Namespace) {
+async function fetchSockets(namespace: socketIO.Namespace) {
+  // redis를 통해 모든 서버 인스턴스의 소켓들을 fetch
   const sockets = await namespace.fetchSockets()
   sockets.forEach(v => {
     console.log(`[ID] ${v.id}`)
@@ -35,7 +36,7 @@ async function fetchSocket(namespace: socketIO.Namespace) {
 
 export async function broadcast(metadata: SocketMetadata, msg: WebRTCMessage | NoteMessage | NoteMessageArray | RefreshNote) {
   // 이 서버에 연결된 소켓에 해당하는 멤버에게 브로드캐스트
-  console.log(`[${msg.socketEvent}] broadcast ${[...await metadata.namespace.allSockets()]}`)
+  console.log(`[${msg.socketEvent}] broadcast to socketIds: ${[...await metadata.namespace.allSockets()]}`)
   if (msg.socketEvent) {
     metadata.namespace
       .emit(msg.socketEvent, msg);
@@ -43,17 +44,18 @@ export async function broadcast(metadata: SocketMetadata, msg: WebRTCMessage | N
 }
 
 export async function unicast(metadata: SocketMetadata, msg: WebRTCMessage | NoteMessageArray) {
-  // 이 서버에 연결된 소켓 멤버에 유니캐스트
+  // 해당 소켓 멤버에 유니캐스트
   const { receiver } = msg;
   const socketId = await cache.get(receiver ?? '')
-  console.log(`[${msg.socketEvent}] unicast ${socketId}`)
   if (socketId) {
-    await fetchSocket(metadata.namespace)
-    
+    if (!localSockets[socketId]) {
+      // 해당 서버 인스턴스에 목적지 소켓 정보가 없을 경우, redis를 통해 fetch
+      await fetchSockets(metadata.namespace)
+    }
     const socket = localSockets[socketId]
     if (socket) {
       socket.emit(msg.socketEvent, msg);
-      console.log(`[${msg.socketEvent}] ${receiver} => ${socketId}`)
+      console.log(`[${msg.socketEvent}] unicast to ${receiver}(${socketId})`)
     } else {
       console.log("NO SOCKET")
     }
@@ -75,14 +77,14 @@ export function initWS(server: httpServer.Server) {
 
   io.of(/^\/\w*/).on('connection', async (socket) => {
     const namespace = socket.nsp;
-    console.log('[INIT] starting ...');
     const markerIdGot = namespace.name as string;
     const markerId = !markerIdGot ? '/anonymous-room' : markerIdGot;
     const unslashedMarkerId = markerId.startsWith('/') ? markerId.substring(1) : markerId;
     const userId = (socket.handshake.query.userId as string) ?? socket.id;
-
     const id = await allocID(userId);
 
+    console.log(`[INIT] socket init for ${unslashedMarkerId}/${id} ... `);
+    
     const metadata = {
       id,
       markerId: unslashedMarkerId,
@@ -111,11 +113,7 @@ export function initWS(server: httpServer.Server) {
         sender: id,
       } as WebRTCMessage);
     
-    console.log(`1 ${JSON.stringify(namespace.sockets)} ${[...await namespace.allSockets()]}`);
-    namespace.socketsJoin('all')
-    console.log(`2 ${JSON.stringify(namespace.sockets)} ${[...await namespace.allSockets()]}`);
-
-    console.log(`init for ID: ${id} in MARKER: ${unslashedMarkerId}`);
+    console.log(`socket initialized for ${unslashedMarkerId}/${id}.`);
   });
   console.log('[INIT] done.');
 }
