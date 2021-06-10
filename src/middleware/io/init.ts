@@ -1,13 +1,13 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable prefer-rest-params */
 import socketIO from 'socket.io';
-import { createAdapter } from '@socket.io/redis-adapter'
+import { createAdapter, RedisAdapter } from '@socket.io/redis-adapter'
 import httpServer from 'http';
 import RedisCache from '../memstore/redisCache';
 import {
   WebRTCMessage, SocketEvent, NoteMessage, NoteMessageArray, RefreshNote,
 } from '.';
-import { allocID } from './commonFunctions';
+import { allocID, generateRoomId } from './commonFunctions';
 import {
   onAttach, onCreateNote, onDeleteNote, onDetach,
   onDisconnect, onError, onPreSignal, onPushSignal,
@@ -46,19 +46,37 @@ export async function broadcast(metadata: SocketMetadata, msg: WebRTCMessage | N
 export async function unicast(metadata: SocketMetadata, msg: WebRTCMessage | NoteMessageArray) {
   // 해당 소켓 멤버에 유니캐스트
   const { receiver } = msg;
-  const socketId = await cache.get(receiver ?? '')
-  if (socketId) {
-    if (!localSockets[socketId]) {
-      // 해당 서버 인스턴스에 목적지 소켓 정보가 없을 경우, redis를 통해 fetch
-      await fetchSockets(metadata.namespace)
-    }
-    const socket = localSockets[socketId]
-    if (socket) {
-      socket.emit(msg.socketEvent, msg);
-      console.log(`[${msg.socketEvent}] unicast to ${receiver}(${socketId})`)
+  const receiverSocketId = await cache.get(receiver ?? '')
+  if (receiverSocketId) {
+    // 둘의 unicast room 생성
+    const nsp = metadata.namespace
+    const roomId = generateRoomId(metadata.socketId, receiverSocketId)
+    const thisSocket = nsp.sockets.get(metadata.socketId)
+    if (thisSocket) {
+      const rooms = thisSocket.rooms
+      if (!rooms?.has(roomId)) {
+        thisSocket.join(roomId)
+        const adapter = nsp.adapter as RedisAdapter
+        adapter.remoteJoin(receiverSocketId, roomId)
+      }
+      thisSocket.to(roomId).emit(msg.socketEvent, msg);
+      console.log(`[${msg.socketEvent}] unicast to ${receiver}(${receiverSocketId})`)
     } else {
       console.log("NO SOCKET")
     }
+    /*
+    if (!localSockets[receiverSocketId]) {
+      // 해당 서버 인스턴스에 목적지 소켓 정보가 없을 경우, redis를 통해 fetch
+      await fetchSockets(metadata.namespace)
+    }
+    const socket = localSockets[receiverSocketId]
+    if (socket) {
+      socket.emit(msg.socketEvent, msg);
+      console.log(`[${msg.socketEvent}] unicast to ${receiver}(${receiverSocketId})`)
+    } else {
+      console.log("NO SOCKET")
+    }
+    */
   }
 }
 

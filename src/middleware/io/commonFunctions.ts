@@ -31,7 +31,10 @@ export async function allocID(markerId: string, id?: string) {
   //await cache.addIntoSet(id, markerId);
   return id;
 }
-
+export function generateRoomId(idA:string, idB: string) {
+  // 단방향 소통용 room id
+  return `${idA}_${idB}`
+}
 export function getMarkerId(msg: WebRTCMessage | NoteMessage | RefreshNote | NoteMessageArray) {
   const id = msg.markerId;
   return id.startsWith('/') ? id.substring(1) : id;
