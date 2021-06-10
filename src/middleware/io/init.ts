@@ -50,15 +50,17 @@ export async function unicast(metadata: SocketMetadata, msg: WebRTCMessage | Not
   const receiverSocketId = await cache.get(receiver ?? '')
   if (receiverSocketId) {
 
-    // 둘의 unicast room 생성
+
     const nsp = metadata.namespace
     const roomId = generateRoomId(metadata.socketId, receiverSocketId)
     const thisSocket = nsp.sockets.get(metadata.socketId)
     try {
       if (thisSocket) {
         if (receiverSocketId === metadata.socketId) {
+          // 자기자신일 경우 그냥 송신
           thisSocket.emit(msg.socketEvent, msg)
         } else {
+          // 1:1 room 생성후 join & 송신
           const rooms = thisSocket.rooms
           if (!rooms?.has(roomId)) {
             await thisSocket.join(roomId)
@@ -74,19 +76,6 @@ export async function unicast(metadata: SocketMetadata, msg: WebRTCMessage | Not
     } catch (e) {
       console.log(e)
     }
-    /*
-    if (!localSockets[receiverSocketId]) {
-      // 해당 서버 인스턴스에 목적지 소켓 정보가 없을 경우, redis를 통해 fetch
-      await fetchSockets(metadata.namespace)
-    }
-    const socket = localSockets[receiverSocketId]
-    if (socket) {
-      socket.emit(msg.socketEvent, msg);
-      console.log(`[${msg.socketEvent}] unicast to ${receiver}(${receiverSocketId})`)
-    } else {
-      console.log("NO SOCKET")
-    }
-    */
   }
 }
 
