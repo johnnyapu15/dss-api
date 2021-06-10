@@ -55,9 +55,9 @@ export async function unicast(metadata: SocketMetadata, msg: WebRTCMessage | Not
     if (thisSocket) {
       const rooms = thisSocket.rooms
       if (!rooms?.has(roomId)) {
-        thisSocket.join(roomId)
+        await thisSocket.join(roomId)
         const adapter = nsp.adapter as RedisAdapter
-        adapter.remoteJoin(receiverSocketId, roomId)
+        await adapter.remoteJoin(receiverSocketId, roomId)
       }
       thisSocket.to(roomId).emit(msg.socketEvent, msg);
       console.log(`[${msg.socketEvent}] unicast to ${receiver}(${receiverSocketId})`)
