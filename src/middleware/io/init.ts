@@ -31,7 +31,8 @@ async function fetchSockets(namespace: socketIO.Namespace) {
   const sockets = await namespace.fetchSockets()
   sockets.forEach(v => {
     console.log(`[ID] ${v.id}`)
-    localSockets[v.id] = v})
+    localSockets[v.id] = v
+  })
 }
 
 export async function broadcast(metadata: SocketMetadata, msg: WebRTCMessage | NoteMessage | NoteMessageArray | RefreshNote) {
@@ -48,19 +49,25 @@ export async function unicast(metadata: SocketMetadata, msg: WebRTCMessage | Not
   const { receiver } = msg;
   const receiverSocketId = await cache.get(receiver ?? '')
   if (receiverSocketId) {
+
     // 둘의 unicast room 생성
     const nsp = metadata.namespace
     const roomId = generateRoomId(metadata.socketId, receiverSocketId)
     const thisSocket = nsp.sockets.get(metadata.socketId)
+
     if (thisSocket) {
-      const rooms = thisSocket.rooms
-      if (!rooms?.has(roomId)) {
-        await thisSocket.join(roomId)
-        const adapter = nsp.adapter as RedisAdapter
-        await adapter.remoteJoin(receiverSocketId, roomId)
+      if (receiverSocketId === metadata.socketId) {
+        thisSocket.emit(msg.socketEvent, msg)
+      } else {
+        const rooms = thisSocket.rooms
+        if (!rooms?.has(roomId)) {
+          await thisSocket.join(roomId)
+          const adapter = nsp.adapter as RedisAdapter
+          await adapter.remoteJoin(receiverSocketId, roomId)
+        }
+        thisSocket.to(roomId).emit(msg.socketEvent, msg);
       }
-      thisSocket.to(roomId).emit(msg.socketEvent, msg);
-      console.log(`[${msg.socketEvent}] unicast to ${receiver}(${receiverSocketId}), msg: ${msg}`)
+      console.log(`[${msg.socketEvent}] unicast ${metadata.socketId} to ${receiver}(${receiverSocketId}), msg: ${JSON.stringify(msg)}`)
     } else {
       console.log("NO SOCKET")
     }
@@ -102,7 +109,7 @@ export function initWS(server: httpServer.Server) {
     const id = await allocID(userId);
 
     console.log(`[INIT] socket init for ${unslashedMarkerId}/${id} ... `);
-    
+
     const metadata = {
       id,
       markerId: unslashedMarkerId,
@@ -130,7 +137,7 @@ export function initWS(server: httpServer.Server) {
         markerId: unslashedMarkerId,
         sender: id,
       } as WebRTCMessage);
-    
+
     console.log(`socket initialized for ${unslashedMarkerId}/${id}.`);
   });
   console.log('[INIT] done.');
