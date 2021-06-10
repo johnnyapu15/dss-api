@@ -60,7 +60,7 @@ export async function unicast(metadata: SocketMetadata, msg: WebRTCMessage | Not
         await adapter.remoteJoin(receiverSocketId, roomId)
       }
       thisSocket.to(roomId).emit(msg.socketEvent, msg);
-      console.log(`[${msg.socketEvent}] unicast to ${receiver}(${receiverSocketId})`)
+      console.log(`[${msg.socketEvent}] unicast to ${receiver}(${receiverSocketId}), msg: ${msg}`)
     } else {
       console.log("NO SOCKET")
     }
