@@ -16,6 +16,10 @@ export enum SocketEvent {
     RETRIEVE_NOTE   = 'RETRIEVE_NOTE',
     REFRESH_NOTE    = 'REFRESH_NOTE',
 
+    UPDATE_MOVEMENT = 'UPDATE_MOVEMENT',
+    RETRIEVE_MOVEMENT = 'RETRIEVE_MOVEMENT',
+    REFRESH_MOVEMENT = 'REFRESH_MOVEMENT',
+
     RESPONSE        = 'RESPONSE',
 }
 
@@ -52,4 +56,41 @@ export type NoteMessageArray = {
     markerId        : string
     receiver        : string
     notes           : NoteMessage[]
+}
+
+/**
+ * Movement messages
+ */
+export enum MovementStatus {
+    STAND = 'STAND',
+    MOVE = 'MOVE',
+}
+
+export type Vector3 = {
+    x       : number
+    y       : number
+    z       : number
+}
+export type MovementMessage = {
+    socketEvent?     : SocketEvent
+    markerId        : string
+    userId          : string
+    currentPosition : Vector3
+    moveVector      : Vector3
+    timestamp       : number
+    status          : MovementStatus
+}
+
+export type RefreshMovement = {
+    socketEvent     : SocketEvent
+    markerId        : string
+    type: 'create' | 'update' | 'delete'
+    movement: MovementMessage
+}
+
+export type MovementMessageArray = {
+    socketEvent     : SocketEvent
+    markerId        : string
+    receiver        : string
+    movements           : MovementMessage[]
 }

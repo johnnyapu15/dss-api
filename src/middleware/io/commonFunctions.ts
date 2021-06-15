@@ -1,8 +1,9 @@
 import { v4 } from 'uuid';
 import {
-  NoteMessage, NoteMessageArray, RefreshNote, WebRTCMessage,
+  MovementMessage,
+  MovementMessageArray,
+  NoteMessage, NoteMessageArray, RefreshMovement, RefreshNote, WebRTCMessage,
 } from '.';
-import { cache } from '../memstore';
 
 export function generateUUID() {
   const rand = v4();
@@ -26,16 +27,24 @@ export async function allocID(markerId: string, id?: string) {
   if (!id) { id = generateUUID(); }
 
   // create empty signal placeholder (array)
-  //await cache.pushIntoArray(id);
+  // await cache.pushIntoArray(id);
   // add into marker-room (set)
-  //await cache.addIntoSet(id, markerId);
+  // await cache.addIntoSet(id, markerId);
   return id;
 }
-export function generateRoomId(idA:string, idB: string) {
+export function generateRoomId(idA: string, idB: string) {
   // 단방향 소통용 room id
-  return `${idA}_${idB}`
+  return `${idA}_${idB}`;
 }
-export function getMarkerId(msg: WebRTCMessage | NoteMessage | RefreshNote | NoteMessageArray) {
+export function getMarkerId(
+  msg: WebRTCMessage |
+    NoteMessage |
+    RefreshNote |
+    NoteMessageArray |
+    MovementMessage |
+    MovementMessageArray |
+    RefreshMovement,
+) {
   const id = msg.markerId;
   return id.startsWith('/') ? id.substring(1) : id;
 }
@@ -44,6 +53,14 @@ export function getNoteId(note: NoteMessage) {
   return `POSTIT_${getMarkerId(note)}_${note.userId}_${note.noteId}`;
 }
 
-export function getPattern(markerId: string) {
+export function getNotePattern(markerId: string) {
   return `POSTIT_${markerId}*`;
+}
+
+export function getMovementId(movement: MovementMessage) {
+  return `MOVEMENT_${getMarkerId(movement)}_${movement.userId}`;
+}
+
+export function getMovementPattern(markerId: string) {
+  return `MOVEMENT_${markerId}*`;
 }

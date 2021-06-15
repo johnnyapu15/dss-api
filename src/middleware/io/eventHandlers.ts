@@ -1,10 +1,12 @@
 /* eslint-disable no-unused-vars */
 import {
+  MovementMessage,
+  MovementMessageArray,
   NoteMessage, NoteMessageArray, RefreshNote, SocketEvent, WebRTCMessage,
 } from '.';
-import { cache } from '../memstore';
+import cache from '../memstore';
 import {
-  getMarkerId, getNoteId, getPattern,
+  getMarkerId, getMovementId, getMovementPattern, getNoteId, getNotePattern,
 } from './commonFunctions';
 import {
   broadcast, localSockets, SocketMetadata, unicast,
@@ -31,7 +33,7 @@ export async function onAttach(this: SocketMetadata, msg: WebRTCMessage) {
     // subscribe to the marker
     const setData = await cache.addIntoSet(sender, markerId);
     // redis에 유저의 id를 socketId로 기록
-    await cache.set(this.id, this.socketId)
+    await cache.set(this.id, this.socketId);
     const message = {
       socketEvent: SocketEvent.ATTACH,
       members: [...setData],
@@ -50,7 +52,7 @@ export async function onAttach(this: SocketMetadata, msg: WebRTCMessage) {
 export async function detach(metadata: SocketMetadata, sender: string, markerId: string) {
   // const sockets = await metadata.namespace.allSockets()
   await cache.deleteKey(sender);
-  cache.del(sender)
+  cache.del(sender);
   const setData = await cache.deleteFromSet(sender, markerId);
   const message = {
     socketEvent: SocketEvent.DETACH,
@@ -71,7 +73,7 @@ export async function onDetach(this: SocketMetadata, msg: WebRTCMessage) {
     if (!sender || !markerId) {
       throw new Error(`Invalid parameter ${msg}`);
     }
-    
+
     await detach(this, sender, markerId);
   } catch (e) {
     if (msg.sender) {
@@ -187,7 +189,7 @@ export async function onDeleteNote(this: SocketMetadata, msg: NoteMessage) {
 }
 
 export async function retrieveNote(this: SocketMetadata) {
-  const pattern = getPattern(this.markerId);
+  const pattern = getNotePattern(this.markerId);
   const noteStrings = await cache.pget(pattern);
   const notes: NoteMessage[] = [];
   noteStrings.forEach((noteString) => {
@@ -198,6 +200,45 @@ export async function retrieveNote(this: SocketMetadata) {
     receiver: this.id,
     socketEvent: SocketEvent.RETRIEVE_NOTE,
     notes,
+  };
+  unicast(this, ret);
+}
+
+/**
+ * Avatar movement
+ */
+
+export async function onUpdateMovement(this: SocketMetadata, msg: MovementMessage) {
+  const data = msg;
+  if (this.id !== data.userId) {
+    // 생성자가 아니라면 무시
+    return;
+  }
+  data.socketEvent = SocketEvent.REFRESH_MOVEMENT;
+  const markerId = getMarkerId(data);
+  data.markerId = markerId;
+  data.timestamp = Date.now();
+
+  const id = getMovementId(data);
+
+  // store
+  cache.set(id, JSON.stringify(data));
+  // broadcast
+  broadcast(this, msg);
+}
+
+export async function retrieveMovement(this: SocketMetadata) {
+  const pattern = getMovementPattern(this.markerId);
+  const movementStrings = await cache.pget(pattern);
+  const movements: MovementMessage[] = [];
+  movementStrings.forEach((movementString) => {
+    movements.push(JSON.parse(movementString));
+  });
+  const ret: MovementMessageArray = {
+    markerId: this.markerId,
+    receiver: this.id,
+    socketEvent: SocketEvent.RETRIEVE_MOVEMENT,
+    movements,
   };
   unicast(this, ret);
 }

@@ -1,11 +1,18 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable prefer-rest-params */
 import socketIO from 'socket.io';
-import { createAdapter, RedisAdapter } from '@socket.io/redis-adapter'
+import { createAdapter, RedisAdapter } from '@socket.io/redis-adapter';
 import httpServer from 'http';
+import { DefaultEventsMap } from 'socket.io/dist/typed-events';
 import RedisCache from '../memstore/redisCache';
 import {
-  WebRTCMessage, SocketEvent, NoteMessage, NoteMessageArray, RefreshNote,
+  WebRTCMessage,
+  SocketEvent,
+  NoteMessage,
+  NoteMessageArray,
+  RefreshNote,
+  MovementMessage,
+  MovementMessageArray,
 } from '.';
 import { allocID, generateRoomId as generateUnicastRoomId } from './commonFunctions';
 import {
@@ -13,8 +20,7 @@ import {
   onDisconnect, onError, onPreSignal, onPushSignal,
   onUpdateNote, retrieveNote,
 } from './eventHandlers';
-import { cache } from '../memstore';
-import { DefaultEventsMap } from 'socket.io/dist/typed-events';
+import cache from '../memstore';
 
 let io: socketIO.Server;
 
@@ -28,53 +34,65 @@ export interface SocketMetadata {
 
 async function fetchSockets(namespace: socketIO.Namespace) {
   // redis를 통해 모든 서버 인스턴스의 소켓들을 fetch
-  const sockets = await namespace.fetchSockets()
-  sockets.forEach(v => {
-    console.log(`[ID] ${v.id}`)
-    localSockets[v.id] = v
-  })
+  const sockets = await namespace.fetchSockets();
+  sockets.forEach((v) => {
+    console.log(`[ID] ${v.id}`);
+    localSockets[v.id] = v;
+  });
 }
 
-export async function broadcast(metadata: SocketMetadata, msg: WebRTCMessage | NoteMessage | NoteMessageArray | RefreshNote) {
+export async function broadcast(
+  metadata: SocketMetadata,
+  msg:
+    WebRTCMessage
+    | NoteMessage
+    | NoteMessageArray
+    | RefreshNote
+    | MovementMessage
+    | MovementMessageArray,
+) {
   // 이 서버에 연결된 소켓에 해당하는 멤버에게 브로드캐스트
-  console.log(`[${msg.socketEvent}] broadcast to socketIds: ${[...await metadata.namespace.allSockets()]}`)
+  console.log(`[${msg.socketEvent}] broadcast to socketIds: ${[...await metadata.namespace.allSockets()]}`);
   if (msg.socketEvent) {
     metadata.namespace
       .emit(msg.socketEvent, msg);
   }
 }
 
-export async function unicast(metadata: SocketMetadata, msg: WebRTCMessage | NoteMessageArray) {
+export async function unicast(
+  metadata: SocketMetadata,
+  msg: WebRTCMessage
+    | NoteMessageArray
+    | MovementMessageArray,
+) {
   // 해당 소켓 멤버에 유니캐스트
   const { receiver } = msg;
-  const receiverSocketId = await cache.get(receiver ?? '')
+  const receiverSocketId = await cache.get(receiver ?? '');
   if (receiverSocketId) {
-
-
-    const nsp = metadata.namespace
-    const roomId = generateUnicastRoomId(metadata.socketId, receiverSocketId)
-    const thisSocket = nsp.sockets.get(metadata.socketId)
+    const nsp = metadata.namespace;
+    const roomId = generateUnicastRoomId(metadata.socketId, receiverSocketId);
+    const thisSocket = nsp.sockets.get(metadata.socketId);
     try {
       if (thisSocket) {
         if (receiverSocketId === metadata.socketId) {
           // 자기자신일 경우 그냥 송신
-          thisSocket.emit(msg.socketEvent, msg)
+          thisSocket.emit(msg.socketEvent, msg);
         } else {
           // 1:1 room 생성후 join & 송신
-          const rooms = thisSocket.rooms
+          const { rooms } = thisSocket;
           if (!rooms?.has(roomId)) {
-            await thisSocket.join(roomId)
-            const adapter = nsp.adapter as RedisAdapter
-            await adapter.remoteJoin(receiverSocketId, roomId)
+            await thisSocket.join(roomId);
+            const adapter = nsp.adapter as RedisAdapter;
+            await adapter.remoteJoin(receiverSocketId, roomId);
           }
           thisSocket.to(roomId).emit(msg.socketEvent, msg);
         }
-        console.log(`[${msg.socketEvent}] unicast ${metadata.socketId} to ${receiver}(${receiverSocketId}), msg: ${JSON.stringify(msg)}`)
+        console.log(`[${msg.socketEvent}] unicast ${metadata.socketId} to ${receiver}(${receiverSocketId}), msg: ${JSON.stringify(msg)}`);
       } else {
-        console.log("NO SOCKET")
+        console.log('NO SOCKET');
       }
     } catch (e) {
-      console.log(e)
+      console.log(e);
     }
   }
 }
