@@ -2,7 +2,7 @@
 import {
   MovementMessage,
   MovementMessageArray,
-  NoteMessage, NoteMessageArray, RefreshNote, SocketEvent, WebRTCMessage,
+  NoteMessage, NoteMessageArray, RefreshMovement, RefreshNote, SocketEvent, WebRTCMessage,
 } from '.';
 import cache from '../memstore';
 import {
@@ -209,18 +209,22 @@ export async function retrieveNote(this: SocketMetadata) {
  */
 
 export async function onUpdateMovement(this: SocketMetadata, msg: MovementMessage) {
-  const data = msg;
-  if (this.id !== data.userId) {
+  
+  if (this.id !== msg.userId) {
     // 생성자가 아니라면 무시
-    console.log(`DO AUTH ... ${this.id} and ${data.userId}`);
+    console.log(`DO AUTH ... ${this.id} and ${msg.userId}`);
     return;
   }
-  data.socketEvent = SocketEvent.REFRESH_MOVEMENT;
-  const markerId = getMarkerId(data);
-  data.markerId = markerId;
-  data.timestamp = Date.now();
+  const data = {
+    socketEvent: SocketEvent.REFRESH_MOVEMENT,
+    markerId: msg.markerId,
+    type: 'update',
+    movement: msg,
 
-  const id = getMovementId(data);
+  } as RefreshMovement;
+  data.movement.timestamp = Date.now();
+
+  const id = getMovementId(msg);
 
   // store (No await.)
   cache.set(id, JSON.stringify(data));
