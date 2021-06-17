@@ -221,7 +221,10 @@ export async function onUpdateMovement(this: SocketMetadata, msg: MovementMessag
     movement: msg,
 
   } as RefreshMovement;
-  data.movement.timestamp = Date.now();
+
+  if (!data.movement.timestamp) {
+    data.movement.timestamp = Date.now();
+  }
 
   const id = getMovementId(msg);
 
