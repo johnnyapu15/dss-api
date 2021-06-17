@@ -73,7 +73,7 @@ export async function broadcastIncludeMe(
   // 이 서버에 연결된 소켓에 해당하는 멤버에게 브로드캐스트
   console.log(`[${msg.socketEvent}] all broadcast to socketIds: ${[...await metadata.namespace.allSockets()]}`);
   if (msg.socketEvent) {
-    io.to(`${metadata.namespace.name}`)
+    io.of(`${metadata.namespace.name}`)
       .emit(msg.socketEvent, msg);
   }
 }
