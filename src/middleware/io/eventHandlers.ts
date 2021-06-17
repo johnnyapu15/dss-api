@@ -221,10 +221,10 @@ export async function onUpdateMovement(this: SocketMetadata, msg: MovementMessag
 
   const id = getMovementId(data);
 
-  // store
+  // store (No await.)
   cache.set(id, JSON.stringify(data));
   // broadcast
-  broadcast(this, msg);
+  broadcast(this, data);
 }
 
 export async function retrieveMovement(this: SocketMetadata) {
