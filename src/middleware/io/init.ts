@@ -18,7 +18,8 @@ import { allocID, generateRoomId as generateUnicastRoomId } from './commonFuncti
 import {
   onAttach, onCreateNote, onDeleteNote, onDetach,
   onDisconnect, onError, onPreSignal, onPushSignal,
-  onUpdateNote, retrieveNote,
+  onUpdateMovement,
+  onUpdateNote, retrieveMovement, retrieveNote,
 } from './eventHandlers';
 import cache from '../memstore';
 
@@ -157,6 +158,9 @@ export function initWS(server: httpServer.Server) {
       .on(SocketEvent.UPDATE_NOTE, onUpdateNote.bind(metadata))
       .on(SocketEvent.DELETE_NOTE, onDeleteNote.bind(metadata))
       .on(SocketEvent.RETRIEVE_NOTE, retrieveNote.bind(metadata))
+      // Movement 이벤트
+      .on(SocketEvent.UPDATE_MOVEMENT, onUpdateMovement.bind(metadata))
+      .on(SocketEvent.RETRIEVE_MOVEMENT, retrieveMovement.bind(metadata))
       // SocketIO 기본 이벤트
       .on('disconnect', onDisconnect.bind(metadata))
       .on('error', onError.bind(metadata))
