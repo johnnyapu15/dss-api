@@ -209,7 +209,6 @@ export async function retrieveNote(this: SocketMetadata) {
  */
 
 export async function onUpdateMovement(this: SocketMetadata, msg: MovementMessage) {
-  
   if (this.id !== msg.userId) {
     // 생성자가 아니라면 무시
     console.log(`DO AUTH ... ${this.id} and ${msg.userId}`);
