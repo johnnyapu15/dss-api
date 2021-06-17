@@ -9,7 +9,7 @@ import {
   getMarkerId, getMovementId, getMovementPattern, getNoteId, getNotePattern,
 } from './commonFunctions';
 import {
-  broadcast, localSockets, SocketMetadata, unicast,
+  broadcast, broadcastIncludeMe, localSockets, SocketMetadata, unicast,
 } from './init';
 
 export function sendError(id: string, e: Error) {
@@ -212,6 +212,7 @@ export async function onUpdateMovement(this: SocketMetadata, msg: MovementMessag
   const data = msg;
   if (this.id !== data.userId) {
     // 생성자가 아니라면 무시
+    console.log(`DO AUTH ... ${this.id} and ${data.userId}`);
     return;
   }
   data.socketEvent = SocketEvent.REFRESH_MOVEMENT;
@@ -224,7 +225,7 @@ export async function onUpdateMovement(this: SocketMetadata, msg: MovementMessag
   // store (No await.)
   cache.set(id, JSON.stringify(data));
   // broadcast
-  broadcast(this, data);
+  broadcastIncludeMe(this, data);
 }
 
 export async function retrieveMovement(this: SocketMetadata) {
