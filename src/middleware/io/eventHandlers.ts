@@ -231,7 +231,7 @@ export async function onUpdateMovement(this: SocketMetadata, msg: MovementMessag
   // store (No await.)
   cache.set(id, JSON.stringify(data));
   // broadcast
-  broadcastIncludeMe(this, data);
+  broadcast(this, data);
 }
 
 export async function retrieveMovement(this: SocketMetadata) {
