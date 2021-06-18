@@ -23,8 +23,10 @@ import {
   onUpdateNote, retrieveMovement, retrieveNote,
 } from './eventHandlers';
 import cache from '../memstore';
+import World from '../world/world';
 
 let io: socketIO.Server;
+export const world = new World();
 
 export const localSockets: { [socketId: string]: socketIO.RemoteSocket<DefaultEventsMap> } = {};
 export interface SocketMetadata {

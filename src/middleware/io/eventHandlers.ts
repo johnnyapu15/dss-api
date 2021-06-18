@@ -10,7 +10,7 @@ import {
   getMarkerId, getMovementId, getMovementKey, getMovementPattern, getNoteId, getNotePattern,
 } from './commonFunctions';
 import {
-  broadcast, broadcastIncludeMe, localSockets, SocketMetadata, unicast,
+  broadcast, broadcastIncludeMe, localSockets, SocketMetadata, unicast, world,
 } from './init';
 
 export function sendError(id: string, e: Error) {
@@ -230,9 +230,10 @@ export async function onUpdateMovement(this: SocketMetadata, msg: MovementMessag
   const id = getMovementId(msg);
 
   // store (No await.)
-  cache.set(id, JSON.stringify(data));
+  // cache.set(id, JSON.stringify(data));
   // broadcast
-  broadcast(this, data);
+  // broadcast(this, data);
+  world.updateMovement(data.movement);
 }
 
 export async function retrieveMovement(this: SocketMetadata) {
