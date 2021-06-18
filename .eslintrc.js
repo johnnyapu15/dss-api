@@ -12,5 +12,6 @@ module.exports = {
       "import/no-unresolved": "off",
       "import/extensions": "off",
       "linebreak-style": "off",
+      "no-use-before-define": "off",
     }
   };

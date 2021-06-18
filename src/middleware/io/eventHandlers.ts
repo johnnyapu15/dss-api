@@ -6,7 +6,8 @@ import {
 } from '.';
 import cache from '../memstore';
 import {
-  getMarkerId, getMovementId, getMovementPattern, getNoteId, getNotePattern,
+  cleanMarkerId,
+  getMarkerId, getMovementId, getMovementKey, getMovementPattern, getNoteId, getNotePattern,
 } from './commonFunctions';
 import {
   broadcast, broadcastIncludeMe, localSockets, SocketMetadata, unicast,
@@ -60,7 +61,8 @@ export async function detach(metadata: SocketMetadata, sender: string, markerId:
     markerId,
     sender,
   } as WebRTCMessage;
-
+  // movement 삭제
+  await deleteMovement(metadata);
   broadcast(metadata, message);
   console.log(`[DETACH] detached ${sender} from ${markerId}`);
 }
@@ -73,7 +75,6 @@ export async function onDetach(this: SocketMetadata, msg: WebRTCMessage) {
     if (!sender || !markerId) {
       throw new Error(`Invalid parameter ${msg}`);
     }
-
     await detach(this, sender, markerId);
   } catch (e) {
     if (msg.sender) {
@@ -248,4 +249,9 @@ export async function retrieveMovement(this: SocketMetadata) {
     movements,
   };
   unicast(this, ret);
+}
+
+export async function deleteMovement(socketMetadata:SocketMetadata) {
+  const movementKey = getMovementKey(cleanMarkerId(socketMetadata.markerId), socketMetadata.id);
+  await cache.del(movementKey);
 }
