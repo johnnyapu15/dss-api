@@ -61,7 +61,8 @@ export async function detach(metadata: SocketMetadata, sender: string, markerId:
     markerId,
     sender,
   } as WebRTCMessage;
-
+  // movement 삭제
+  await deleteMovement(metadata);
   broadcast(metadata, message);
   console.log(`[DETACH] detached ${sender} from ${markerId}`);
 }
@@ -74,8 +75,6 @@ export async function onDetach(this: SocketMetadata, msg: WebRTCMessage) {
     if (!sender || !markerId) {
       throw new Error(`Invalid parameter ${msg}`);
     }
-    // movement 삭제
-    await deleteMovement(this);
     await detach(this, sender, markerId);
   } catch (e) {
     if (msg.sender) {
