@@ -56,9 +56,11 @@ export function getNoteId(note: NoteMessage) {
 export function getNotePattern(markerId: string) {
   return `POSTIT_${markerId}*`;
 }
-
+export function getMovementKey(markerId: string, userId: string) {
+  return `MOVEMENT_${markerId}_${userId}`;
+}
 export function getMovementId(movement: MovementMessage) {
-  return `MOVEMENT_${getMarkerId(movement)}_${movement.userId}`;
+  return getMovementKey(getMarkerId(movement), movement.userId);
 }
 
 export function getMovementPattern(markerId: string) {
