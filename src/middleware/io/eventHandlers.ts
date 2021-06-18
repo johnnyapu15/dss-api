@@ -75,7 +75,7 @@ export async function onDetach(this: SocketMetadata, msg: WebRTCMessage) {
       throw new Error(`Invalid parameter ${msg}`);
     }
     // movement 삭제
-    deleteMovement(this);
+    await deleteMovement(this);
     await detach(this, sender, markerId);
   } catch (e) {
     if (msg.sender) {
@@ -254,5 +254,5 @@ export async function retrieveMovement(this: SocketMetadata) {
 
 export async function deleteMovement(socketMetadata:SocketMetadata) {
   const movementKey = getMovementKey(cleanMarkerId(socketMetadata.markerId), socketMetadata.id);
-  cache.del(movementKey);
+  await cache.del(movementKey);
 }
