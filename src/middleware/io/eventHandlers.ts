@@ -6,6 +6,7 @@ import {
 } from '.';
 import cache from '../memstore';
 import {
+  cleanMarkerId,
   getMarkerId, getMovementId, getMovementKey, getMovementPattern, getNoteId, getNotePattern,
 } from './commonFunctions';
 import {
@@ -252,6 +253,6 @@ export async function retrieveMovement(this: SocketMetadata) {
 }
 
 export async function deleteMovement(socketMetadata:SocketMetadata) {
-  const movementKey = getMovementKey(socketMetadata.markerId, socketMetadata.id);
+  const movementKey = getMovementKey(cleanMarkerId(socketMetadata.markerId), socketMetadata.id);
   cache.del(movementKey);
 }

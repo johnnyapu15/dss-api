@@ -46,6 +46,10 @@ export function getMarkerId(
     RefreshMovement,
 ) {
   const id = msg.markerId;
+  return cleanMarkerId(id);
+}
+
+export function cleanMarkerId(id:string) {
   return id.startsWith('/') ? id.substring(1) : id;
 }
 
