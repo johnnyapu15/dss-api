@@ -169,7 +169,7 @@ describe('movements', () => {
       getTime(got.movement);
       if (Date.now() - STARTTIME > 3000) { done(); ids.forEach((id)=>{clearInterval(id)}); printTime(); console.log(`sended: ${sendingMsg}`)}
     });
-    async function emit(this: {socket: Socket, metadata: {}}) {
+    async function emit(this: {socket: Socket, metadata: {sender:string, markerId:string}}) {
       const msg = JSON.parse(JSON.stringify(movementMessage));
       msg.userId = this.metadata.sender;
       msg.markerId = metadata.markerId;
