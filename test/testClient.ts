@@ -47,8 +47,14 @@ function getSocket(sockets: Socket[], metadata: Metadata[]) {
     .on('INIT', (arg: any) => {
       sockets.push(socket);
       metadata.push(arg);
+      const msg = {
+        sender: arg.sender,
+        markerId: arg.markerId,
+      };
+      socket.emit('ATTACH', msg);
       assert.equal(arg.markerId, 'drlab');
     });
+
   return socket;
 }
 
@@ -67,7 +73,7 @@ const movementMessage = {
 
 
 describe('movements', () => {
-  
+
   const SOCKET_NUMBER = 10;
   const sockets: Socket[] = []
   const metadatas: Metadata[] = []
@@ -88,7 +94,12 @@ describe('movements', () => {
     });
     clientSocket
       .on('INIT', (arg) => {
+        const msg = {
+          sender: arg.sender,
+          markerId: arg.markerId,
+        };
         metadata = arg;
+        clientSocket.emit('ATTACH', msg);
         assert.equal(arg.markerId, 'drlab');
         done();
       });
@@ -101,18 +112,6 @@ describe('movements', () => {
     sockets.forEach((socket) => {
       socket.disconnect();
     });
-  });
-
-  it('ATTACH', (done) => {
-    const msg = {
-      sender: metadata.sender,
-      markerId: metadata.markerId,
-    };
-    clientSocket.once('ATTACH', (data: any) => {
-      assert(data.sender === metadata.sender, 'Not attached.')
-      done();
-    });
-    clientSocket.emit('ATTACH', msg);
   });
 
   it('one movements', (done) => {
@@ -162,14 +161,14 @@ describe('movements', () => {
     for (let i = 0; i < 1000; i += 1) emit(i);
   });
   it('3 seconds with all socket emit', (done) => {
-    const INTERVAL:number = 16; // 3000 / 16 * 10 = 1875
+    const INTERVAL: number = 16; // 3000 / 16 * 10 = 1875
     const STARTTIME = Date.now();
     let sendingMsg = 0;
     clientSocket.on('REFRESH_MOVEMENT', (got: any) => {
       getTime(got.movement);
-      if (Date.now() - STARTTIME > 3000) { done(); ids.forEach((id)=>{clearInterval(id)}); printTime(); console.log(`sended: ${sendingMsg}`)}
+      if (Date.now() - STARTTIME > 3000) { done(); ids.forEach((id) => { clearInterval(id) }); printTime(); console.log(`sended: ${sendingMsg}`) }
     });
-    async function emit(this: {socket: Socket, metadata: {sender:string, markerId:string}}) {
+    async function emit(this: { socket: Socket, metadata: { sender: string, markerId: string } }) {
       const msg = JSON.parse(JSON.stringify(movementMessage));
       msg.userId = this.metadata.sender;
       msg.markerId = metadata.markerId;
