@@ -166,7 +166,7 @@ describe('movements', () => {
     let sendingMsg = 0;
     clientSocket.on('REFRESH_MOVEMENT', (got: any) => {
       getTime(got.movement);
-      if (Date.now() - STARTTIME > 3000) { done(); ids.forEach((id) => { clearInterval(id) }); printTime(); console.log(`sended: ${sendingMsg}`) }
+      if (Date.now() - STARTTIME > 3500) { done(); ids.forEach((id) => { clearInterval(id) }); printTime(); console.log(`sended: ${sendingMsg}`) }
     });
     async function emit(this: { socket: Socket, metadata: { sender: string, markerId: string } }) {
       const msg = JSON.parse(JSON.stringify(movementMessage));
