@@ -1,12 +1,12 @@
 ## 4 clusters
   movements
-    √ one movements (6ms)
+    √ one movement (6ms)
         avg: 5ms        sum: 5ms        count: 1
     √ 100 movements with random socket emit (46ms)
         avg: 27.734375ms        sum: 1775ms     count: 64
     √ 1000 movements with random socket emit (271ms)
         avg: 177.97652582159625ms       sum: 151636ms   count: 852
-    √ 3 seconds with all socket emit (3016ms)
+    √ 3 seconds with 10 sockets emit (3016ms)
         avg: 27.6837376460018ms sum: 30812ms    count: 1113
     sended: 1030
 
@@ -15,13 +15,13 @@
 
 ## 1 cluster
   movements
-    √ one movements (7ms)
+    √ one movement (7ms)
         avg: 7ms        sum: 7ms        count: 1
     √ 100 movements with random socket emit (96ms)
         avg: 50.18181818181818ms        sum: 2760ms     count: 55
     √ 1000 movements with random socket emit (798ms)
         avg: 463.616ms  sum: 463616ms   count: 1000
-    √ 3 seconds with all socket emit (3002ms)
+    √ 3 seconds with 10 sockets emit (3002ms)
         avg: 6.3431661750245825ms       sum: 6451ms     count: 1017
     sended: 1020
 

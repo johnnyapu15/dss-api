@@ -114,7 +114,7 @@ describe('movements', () => {
     });
   });
 
-  it('one movements', (done) => {
+  it('one movement', (done) => {
     clientSocket.once('REFRESH_MOVEMENT', (got: any) => {
       getTime(got.movement);
       done();
@@ -130,7 +130,7 @@ describe('movements', () => {
   it('100 movements with random socket emit', (done) => {
     clientSocket.on('REFRESH_MOVEMENT', (got: any) => {
       getTime(got.movement);
-      if (got.movement.currentPosition.x === 99) { done(); printTime(); }
+      if (TimeArr.length === 100) { done(); printTime(); }
     });
     async function emit(i: number) {
       const index = i % SOCKET_NUMBER;
@@ -147,7 +147,7 @@ describe('movements', () => {
   it('1000 movements with random socket emit', (done) => {
     clientSocket.on('REFRESH_MOVEMENT', (got: any) => {
       getTime(got.movement);
-      if (got.movement.currentPosition.x === 999) { done(); printTime(); }
+      if (TimeArr.length === 1000) { done(); printTime(); }
     });
     async function emit(i: number) {
       const index = i % SOCKET_NUMBER;
@@ -160,7 +160,7 @@ describe('movements', () => {
     }
     for (let i = 0; i < 1000; i += 1) emit(i);
   });
-  it('3 seconds with all socket emit', (done) => {
+  it('3 seconds with 10 sockets emit', (done) => {
     const INTERVAL: number = 16; // 3000 / 16 * 10 = 1875
     const STARTTIME = Date.now();
     let sendingMsg = 0;
