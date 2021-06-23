@@ -140,6 +140,7 @@ export function initWS(server: httpServer.Server) {
     const id = await allocID(unslashedMarkerId, userId);
     if (!id) {
       // id 생성 실패
+      socket.disconnect(true);
       return;
     }
     console.log(`[INIT] socket init for ${unslashedMarkerId}/${id} ... `);
