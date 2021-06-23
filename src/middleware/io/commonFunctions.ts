@@ -1,9 +1,11 @@
+/* eslint-disable no-param-reassign */
 import { v4 } from 'uuid';
 import {
   MovementMessage,
   MovementMessageArray,
   NoteMessage, NoteMessageArray, RefreshMovement, RefreshNote, WebRTCMessage,
 } from '.';
+import cache from '../memstore';
 
 export function generateUUID() {
   const rand = v4();
@@ -22,14 +24,18 @@ export function getMemberAddr(msg: WebRTCMessage) {
  * @param id if null, use random uuid.
  * @returns created id
  */
-export async function allocID(id?: string) {
-  // eslint-disable-next-line no-param-reassign
-  if (!id) { id = generateUUID(); }
-
-  // create empty signal placeholder (array)
-  // await cache.pushIntoArray(id);
+export async function allocID(markerId: string, id?: string) {
   // add into marker-room (set)
-  // await cache.addIntoSet(id, markerId);
+  if (id) {
+    const isMember = await cache.sismember(markerId, id);
+    if (isMember === 1) {
+    // 이미 있음
+      return undefined;
+    }
+  } else {
+    id = generateUUID();
+  }
+  await cache.addIntoSet(id, markerId);
   return id;
 }
 export function generateRoomId(idA: string, idB: string) {

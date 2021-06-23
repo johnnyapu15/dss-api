@@ -4,6 +4,14 @@ import { BadRequestError, NotFoundError } from '../error';
 // eslint-disable-next-line no-underscore-dangle
 const _cache: { [key: string]: Set<string> | string[] } = {};
 export default class InMemoryCache implements CustomCache {
+  sismember(setId: string, id: string): Promise<number> {
+    throw new Error('Method not implemented.');
+  }
+
+  smembers(key: string): Promise<string[]> {
+    throw new Error('Method not implemented.');
+  }
+
   pget(pattern: string): Promise<string[]> {
     throw new Error('Method not implemented.');
   }

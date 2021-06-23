@@ -10,5 +10,6 @@ interface CustomCache {
     get(key:string): Promise<string | null>;
     del(key:string): Promise<number>;
     exists(key:string): Promise<number>;
-
+    smembers(key:string): Promise<string[]>;
+    sismember(setId:string, id: string): Promise<number>;
 }
