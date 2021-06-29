@@ -47,6 +47,8 @@ export default class RedisCache implements CustomCache {
 
   smembers = promisify(this.client.smembers).bind(this.client);
 
+  sismember = promisify(this.client.SISMEMBER).bind(this.client);
+
   srem = <(arg0: string, arg1: string) => Promise<number>>
     promisify(this.client.srem).bind(this.client);
 
