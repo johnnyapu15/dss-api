@@ -74,7 +74,7 @@ const movementMessage = {
 
 describe('movements', () => {
 
-  const SOCKET_NUMBER = 10;
+  const SOCKET_NUMBER = 100;
   const sockets: Socket[] = []
   const metadatas: Metadata[] = []
   let clientSocket: Socket
@@ -127,60 +127,72 @@ describe('movements', () => {
     clientSocket.emit('UPDATE_MOVEMENT', msg);
   });
 
-  it('100 movements with random socket emit', (done) => {
-    clientSocket.on('REFRESH_MOVEMENT', (got: any) => {
-      getTime(got.movement);
-      if (TimeArr.length === 100) { done(); printTime(); }
-    });
-    async function emit(i: number) {
-      const index = i % SOCKET_NUMBER;
-      const msg = JSON.parse(JSON.stringify(movementMessage));
-      msg.userId = metadatas[index].sender;
-      msg.markerId = metadata.markerId;
-      msg.currentPosition.x = i;
-      msg.timestamp = Date.now();
-      sockets[index].emit('UPDATE_MOVEMENT', msg);
-    }
-    for (let i = 0; i < 100; i += 1) emit(i);
-  });
+  // it('100 movements with 10 socket emit', (done) => {
+  //   clientSocket.on('REFRESH_MOVEMENT', (got: any) => {
+  //     if (got.userId === metadatas[0].sender) {
+  //       getTime(got.movement);
+  //     }
+  //     if (TimeArr.length === 100) { done(); printTime(); }
+  //   });
+  //   async function emit(i: number) {
+  //     const index = i % SOCKET_NUMBER;
+  //     const msg = JSON.parse(JSON.stringify(movementMessage));
+  //     msg.userId = metadatas[index].sender;
+  //     msg.markerId = metadata.markerId;
+  //     msg.currentPosition.x = i;
+  //     msg.timestamp = Date.now();
+  //     sockets.forEach((socket) => {
+  //       socket.emit('UPDATE_MOVEMENT', msg);
+  //     });
+  //   }
+  //   for (let i = 0; i < 100; i += 1) emit(i);
+  // });
 
-  it('1000 movements with random socket emit', (done) => {
-    clientSocket.on('REFRESH_MOVEMENT', (got: any) => {
-      getTime(got.movement);
-      if (TimeArr.length === 1000) { done(); printTime(); }
-    });
-    async function emit(i: number) {
-      const index = i % SOCKET_NUMBER;
-      const msg = JSON.parse(JSON.stringify(movementMessage));
-      msg.userId = metadatas[index].sender;
-      msg.markerId = metadata.markerId;
-      msg.currentPosition.x = i;
-      msg.timestamp = Date.now();
-      sockets[index].emit('UPDATE_MOVEMENT', msg);
-    }
-    for (let i = 0; i < 1000; i += 1) emit(i);
-  });
-  it('3 seconds with 10 sockets emit', (done) => {
-    const INTERVAL: number = 16; // 3000 / 16 * 10 = 1875
+  // it('1000 movements with 10 socket emit', (done) => {
+  //   clientSocket.on('REFRESH_MOVEMENT', (got: any) => {
+  //     if (got.userId === metadatas[0].sender) {
+  //       getTime(got.movement);
+  //     }
+  //     if (TimeArr.length === 1000) { done(); printTime(); }
+  //   });
+  //   async function emit(i: number) {
+  //     const index = i % SOCKET_NUMBER;
+  //     const msg = JSON.parse(JSON.stringify(movementMessage));
+  //     msg.userId = metadatas[index].sender;
+  //     msg.markerId = metadata.markerId;
+  //     msg.currentPosition.x = i;
+  //     msg.timestamp = Date.now();
+  //     sockets.forEach((socket) => {
+  //       socket.emit('UPDATE_MOVEMENT', msg);
+  //     });
+  //   }
+  //   for (let i = 0; i < 1000; i += 1) emit(i);
+  // });
+  it(`3 seconds with ${SOCKET_NUMBER} sockets emit`, (done) => {
+    const INTERVAL: number = 50; // 3000 / 16 * 10 = 1875
     const STARTTIME = Date.now();
-    let sendingMsg = 0;
     clientSocket.on('REFRESH_MOVEMENT', (got: any) => {
       getTime(got.movement);
-      if (Date.now() - STARTTIME > 3500) { done(); ids.forEach((id) => { clearInterval(id) }); printTime(); console.log(`sended: ${sendingMsg}`) }
+
+      // eslint-disable-next-line no-mixed-operators
+      if (Date.now() - STARTTIME > 3500) { done(); ids.forEach((id) => { clearInterval(id) }); printTime(); console.log(`ideal: ${(3500 / INTERVAL * SOCKET_NUMBER)}`) }
     });
     async function emit(this: { socket: Socket, metadata: { sender: string, markerId: string } }) {
       const msg = JSON.parse(JSON.stringify(movementMessage));
       msg.userId = this.metadata.sender;
       msg.markerId = metadata.markerId;
       msg.timestamp = Date.now();
+      // eslint-disable-next-line no-unused-expressions
+      msg.currentPosition = {
+        x: 10 * (Math.random() - 0.5), y: 10 * (Math.random() - 0.5), z: 10 * (Math.random() - 0.5),
+      };
       this.socket.emit('UPDATE_MOVEMENT', msg);
-      sendingMsg += 1;
     }
     const ids: NodeJS.Timeout[] = [];
     sockets.forEach((socket) => {
       ids.push(setInterval(emit.bind({
         socket, metadata: metadatas[sockets.indexOf(socket)],
       }), INTERVAL));
-    })
+    });
   }).timeout(10000);
 });
